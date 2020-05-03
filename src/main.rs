@@ -101,23 +101,23 @@ async fn route_get_card(
     let state = db.lock().or(Err(ServerError::DatabaseConnectionError))?;
    
    
-    let card = state.db.get_card(path.0).or(Err
-            (ClientError::ResourceNotFound))?;
+    let card = state.db.get_card(path.0).or(
+        Err(ClientError::ResourceNotFound))?;
+    
     Ok(HttpResponse::Ok().json(card))
 }
 
 
 fn init_config() -> anyhow::Result<()>  {
-    log4rs::init_file("runtime-config/log4rs/log4rs.yml", Default::default())?;
+    log4rs::init_file("config/log4rs/log4rs.yml", Default::default())?;
     info!("Finished init log4rs");
     info!("Finished reading server configuration");
     Ok(())
 }
 
 fn init_state() -> std::io::Result<Arc<Mutex<ServerState>>> {
-    
     info!("Init database connection");
-    let db = CardDatabase::new ("local-data/databases/cards.db")
+    let db = CardDatabase::new ("runtime/data/databases/cards.db")
             .or(Err(ServerError::DatabaseConnectionError))?;
     
     Ok(Arc::new(Mutex::new(ServerState { db })))
