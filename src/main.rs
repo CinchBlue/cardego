@@ -4,89 +4,18 @@ extern crate anyhow;
 extern crate thiserror;
 extern crate derive_more;
 
+
 use cardego_server::{CardDatabase};
+use cardego_server::errors::*;
 
-
-use actix_web::{web, App, HttpRequest, HttpServer, Responder, HttpResponse};
-
-use anyhow::{Result, Context};
-
+use actix_web::{web, App, HttpServer, Responder, HttpResponse};
 use log::{info};
-use std::sync::{Arc, Mutex};
-use std::error::Error;
 
-// impl std::convert::From<Error> for std::io::Error {
-//     fn from(e: anyhow::Error) -> Self {
-//         unimplemented!()
-//     }
-// }
+use std::sync::{Arc, Mutex};
+
 
 struct ServerState {
     db: CardDatabase,
-}
-
-#[derive(thiserror::Error, Debug)]
-enum AppError {
-    #[error("Server error: `{0}`")]
-    Server(ServerError),
-    #[error("Client error: `{0}`")]
-    Client(ClientError),
-}
-
-impl std::convert::From<AppError> for std::io::Error {
-    fn from(err: AppError) -> Self {
-        std::io::Error::new(
-            std::io::ErrorKind::Other,
-            err
-        )
-    }
-}
-
-#[derive(thiserror::Error, Debug)]
-enum ServerError {
-    #[error("Server configuration is invalid")]
-    ConfigurationError,
-    #[error("Could not conenct to database")]
-    DatabaseConnectionError,
-}
-
-impl std::convert::From<ServerError> for crate::AppError {
-    fn from(err: ServerError) -> Self {
-        AppError::Server(err)
-    }
-}
-
-impl std::convert::From<ServerError> for std::io::Error {
-    fn from(err: ServerError) -> Self {
-        std::io::Error::from(AppError::from(err))
-    }
-}
-
-#[derive(thiserror::Error, Debug)]
-enum ClientError {
-    #[error("Requested resource not found")]
-    ResourceNotFound,
-}
-
-impl std::convert::From<ClientError> for crate::AppError {
-    fn from(err: ClientError) -> Self {
-        AppError::Client(err)
-    }
-}
-
-impl std::convert::From<ClientError> for std::io::Error {
-    fn from(err: ClientError) -> Self {
-        match err {
-            ClientError::ResourceNotFound => std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                err),
-        }
-    }
-}
-
-async fn greet(req: HttpRequest) -> impl Responder {
-    let name = req.match_info().get("name").unwrap_or("World");
-    format!("Hello {}!", &name)
 }
 
 
@@ -101,12 +30,39 @@ async fn route_get_card(
     let state = db.lock().or(Err(ServerError::DatabaseConnectionError))?;
    
    
-    let card = state.db.get_card(path.0).or(
-        Err(ClientError::ResourceNotFound))?;
+    let card = state.db.get_card(path.0)
+            .or(Err(ClientError::ResourceNotFound))?;
     
     Ok(HttpResponse::Ok().json(card))
 }
 
+
+async fn route_get_user_set(
+    path: web::Path<String>)
+    -> std::io::Result<HttpResponse> {
+    
+    info!("path: {}", path);
+    
+    let db = init_state()?;
+    let state = db.lock().or(Err(ServerError::DatabaseConnectionError))?;
+    
+    let cards = state.db.get_cards_by_user_set_name(path.to_string())
+            .or(Err(ClientError::ResourceNotFound))?;
+    
+    Ok(HttpResponse::Ok().json(cards))
+}
+
+async fn route_query_user_sets(
+    path: web::Path<String>)
+    -> std::io::Result<HttpResponse> {
+    let db = init_state()?;
+    let state = db.lock().or(Err(ServerError::DatabaseConnectionError))?;
+    
+    let user_sets = state.db.query_user_sets_by_name(path.to_string())
+            .or(Err(ClientError::ResourceNotFound))?;
+    
+    Ok(HttpResponse::Ok().json(user_sets))
+}
 
 fn init_config() -> anyhow::Result<()>  {
     log4rs::init_file("config/log4rs/log4rs.yml", Default::default())?;
@@ -133,7 +89,11 @@ async fn main() -> std::io::Result<()> {
         App::new()
                 .route("/", web::get().to(index))
                 .service(web::scope("/cards")
-                                .route("/{id}", web::get().to(route_get_card)))
+                        .route("/{id}", web::get().to(route_get_card)))
+                .service(web::scope("/user_set")
+                        .route("/{name}", web::get().to(route_get_user_set)))
+                .service(web::scope("/search")
+                    .route("/user_set/{name}", web::get().to(route_query_user_sets)))
     })
             .bind("127.0.0.1:8000")?
             .run()

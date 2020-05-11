@@ -22,3 +22,20 @@ pub struct NewCard<'a> {
     pub cost: &'a str,
     pub desc: &'a str,
 }
+
+
+#[derive(Serialize, Deserialize)]
+#[derive(Queryable)]
+pub struct UserSet {
+    pub id: i32,
+    pub name: String,
+}
+
+
+#[derive(Serialize, Deserialize)]
+#[derive(Queryable)]
+pub struct UserSetToCard {
+    pub id: i32,
+    pub user_set_id: i32,
+    pub card_id: i32,
+}

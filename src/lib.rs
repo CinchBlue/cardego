@@ -1,17 +1,22 @@
 #[macro_use] extern crate diesel;
 #[macro_use] extern crate serde;
+
 extern crate anyhow;
 
 pub mod models;
 pub mod schema;
+pub mod errors;
 
 use diesel::prelude::*;
 use diesel::{SqliteConnection};
 
+use anyhow::{Result};
+use log::{info, debug};
+
 use self::models::*;
+use self::errors::*;
 
 use std::error::{Error};
-use anyhow::Result;
 
 pub struct CardDatabase {
     connection: Box<SqliteConnection>,
@@ -35,6 +40,46 @@ impl CardDatabase {
 
         Ok(result)
     }
+    
+    pub fn get_cards_by_user_set_name(&self, set_name: String)
+        -> Result<Vec<Card>> {
+        use self::schema::*;
+        
+        allow_tables_to_appear_in_same_query!(
+            user_sets_to_cards,
+            cards,
+            user_sets);
+       
+        // Get the list of cards from the card set
+        let query = user_sets::dsl::user_sets
+                .inner_join(user_sets_to_cards::dsl::user_sets_to_cards
+                        .on(user_sets::dsl::name.like(set_name)))
+                .inner_join(cards::dsl::cards
+                        .on(user_sets_to_cards::dsl::card_id
+                                .eq (cards::dsl::id)))
+                .filter(user_sets::dsl::id
+                        .eq(user_sets_to_cards::dsl::user_set_id))
+                .select(cards::all_columns);
+        
+        debug!("{}", diesel::debug_query::<diesel::sqlite::Sqlite, _>
+            (&query).to_string());
+        
+        let results = query.load(self.connection.as_ref())?;
+        
+        Ok(results)
+    }
+    
+    pub fn query_user_sets_by_name(&self, s: String)
+        -> Result<Vec<UserSet>> {
+        use self::schema::user_sets::dsl::*;
+    
+        let results = user_sets
+                .filter(name.like(format!("%{}%", s)))
+                .load(self.connection.as_ref())?;
+        
+        Ok(results)
+    }
+    
     
     pub fn query_cards_by_name(&self, s: &str) -> Result<Vec<Card>> {
         use self::schema::cards::dsl::*;
