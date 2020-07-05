@@ -1,5 +1,4 @@
 #[macro_use] extern crate diesel;
-#[macro_use] extern crate serde;
 
 extern crate anyhow;
 
@@ -11,7 +10,7 @@ use diesel::prelude::*;
 use diesel::{SqliteConnection};
 
 use anyhow::{Result};
-use log::{info, debug};
+use log::{debug};
 
 use self::models::*;
 use self::errors::*;
@@ -41,24 +40,24 @@ impl CardDatabase {
         Ok(result)
     }
     
-    pub fn get_cards_by_user_set_name(&self, set_name: String)
+    pub fn get_cards_by_deck_name(&self, set_name: String)
         -> Result<Vec<Card>> {
         use self::schema::*;
         
         allow_tables_to_appear_in_same_query!(
-            user_sets_to_cards,
+            decks_cards_relation,
             cards,
-            user_sets);
+            decks);
        
         // Get the list of cards from the card set
-        let query = user_sets::dsl::user_sets
-                .inner_join(user_sets_to_cards::dsl::user_sets_to_cards
-                        .on(user_sets::dsl::name.like(set_name)))
+        let query = decks::dsl::decks
+                .inner_join(decks_cards_relation::dsl::decks_cards_relation
+                        .on(decks::dsl::name.like(set_name)))
                 .inner_join(cards::dsl::cards
-                        .on(user_sets_to_cards::dsl::card_id
+                        .on(decks_cards_relation::dsl::card_id
                                 .eq (cards::dsl::id)))
-                .filter(user_sets::dsl::id
-                        .eq(user_sets_to_cards::dsl::user_set_id))
+                .filter(decks::dsl::id
+                        .eq(decks_cards_relation::dsl::deck_id))
                 .select(cards::all_columns);
         
         debug!("{}", diesel::debug_query::<diesel::sqlite::Sqlite, _>
@@ -69,11 +68,11 @@ impl CardDatabase {
         Ok(results)
     }
     
-    pub fn query_user_sets_by_name(&self, s: String)
-        -> Result<Vec<UserSet>> {
-        use self::schema::user_sets::dsl::*;
-    
-        let results = user_sets
+    pub fn query_decks_by_name(&self, s: String)
+        -> Result<Vec<Deck>> {
+        use self::schema::decks::dsl::*;
+        
+        let results = decks
                 .filter(name.like(format!("%{}%", s)))
                 .load(self.connection.as_ref())?;
         
@@ -81,33 +80,34 @@ impl CardDatabase {
     }
     
     
-    pub fn query_cards_by_name(&self, s: &str) -> Result<Vec<Card>> {
+    pub fn query_cards_by_name(&self, s: String) -> Result<Vec<Card>> {
         use self::schema::cards::dsl::*;
-        
+    
         let results = cards
-                .filter(name.like(s))
-                .load::<Card>(self.connection.as_ref())?;
+                .filter(name.like(format!("%{}%", s)))
+                .load(self.connection.as_ref())?;
         
         Ok(results)
     }
     
-    pub fn query_cards_by_cardtype(&self, s: &str)
+    pub fn query_cards_by_cardclass(&self, s: &str)
         -> Result<Vec<Card>, Box<dyn Error>> {
         use self::schema::cards::dsl::*;
         
         let results = cards
-                .filter(cardtype.eq(s))
+                .filter(cardclass.eq(s))
                 .load::<Card>(self.connection.as_ref())?;
         
         Ok(results)
     }
     
-    pub fn query_cards_by_cost(&self, s: &str) -> Result<Vec<Card>, Box<dyn Error>> {
-        use crate::schema::cards::columns::cost;
+    pub fn query_cards_by_action(&self, s: &str) -> Result<Vec<Card>, Box<dyn
+    Error>> {
+        use crate::schema::cards::columns::action;
         use crate::schema::cards::dsl::cards;
         
         let results = cards
-                .filter(cost.like(s))
+                .filter(action.like(s))
                 .load::<Card>(self.connection.as_ref())?;
         
         Ok(results)

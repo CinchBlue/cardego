@@ -1,24 +1,26 @@
 table! {
     cards (id) {
         id -> Integer,
-        cardtype -> Text,
+        cardclass -> Text,
+        action -> Text,
+        speed -> Text,
         name -> Text,
-        cost -> Text,
         desc -> Text,
     }
 }
 
 table! {
-    user_sets (id) {
+    decks (id) {
         id -> Integer,
+        decktype -> Text,
         name -> Text,
     }
 }
 
 table! {
-    user_sets_to_cards (id) {
+    decks_cards_relation (id) {
         id -> Integer,
-        user_set_id -> Integer,
+        deck_id -> Integer,
         card_id -> Integer,
     }
 }

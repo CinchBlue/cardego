@@ -37,43 +37,53 @@ async fn route_get_card(
 }
 
 
-async fn route_get_user_set(
+async fn route_get_deck(
     path: web::Path<String>)
     -> std::io::Result<HttpResponse> {
-    
-    info!("path: {}", path);
     
     let db = init_state()?;
     let state = db.lock().or(Err(ServerError::DatabaseConnectionError))?;
     
-    let cards = state.db.get_cards_by_user_set_name(path.to_string())
+    let cards = state.db.get_cards_by_deck_name(path.to_string())
             .or(Err(ClientError::ResourceNotFound))?;
     
     Ok(HttpResponse::Ok().json(cards))
 }
 
-async fn route_query_user_sets(
+async fn route_query_decks(
     path: web::Path<String>)
     -> std::io::Result<HttpResponse> {
     let db = init_state()?;
     let state = db.lock().or(Err(ServerError::DatabaseConnectionError))?;
     
-    let user_sets = state.db.query_user_sets_by_name(path.to_string())
+    let decks = state.db.query_decks_by_name(path.to_string())
             .or(Err(ClientError::ResourceNotFound))?;
     
-    Ok(HttpResponse::Ok().json(user_sets))
+    Ok(HttpResponse::Ok().json(decks))
+}
+
+async fn route_query_cards(
+    path: web::Path<String>)
+    -> std::io::Result<HttpResponse> {
+    let db = init_state()?;
+    let state = db.lock().or(Err(ServerError::DatabaseConnectionError))?;
+    
+    let cards = state.db.query_cards_by_name(path.to_string())
+            .or(Err(ClientError::ResourceNotFound))?;
+    
+    Ok(HttpResponse::Ok().json(cards))
 }
 
 fn init_config() -> anyhow::Result<()>  {
     log4rs::init_file("config/log4rs/log4rs.yml", Default::default())?;
-    info!("Finished init log4rs");
+    info!("Finished initializing log4rs");
     info!("Finished reading server configuration");
     Ok(())
 }
 
 fn init_state() -> std::io::Result<Arc<Mutex<ServerState>>> {
-    info!("Init database connection");
-    let db = CardDatabase::new ("runtime/data/databases/cards.db")
+    info!("Initializing database connection");
+    let db = CardDatabase::new ("runtime/data/databases/cards-new.db")
             .or(Err(ServerError::DatabaseConnectionError))?;
     
     Ok(Arc::new(Mutex::new(ServerState { db })))
@@ -84,16 +94,17 @@ async fn main() -> std::io::Result<()> {
     init_config()
             .or(Err(ServerError::ConfigurationError))?;
     
-    info!("Init server framework");
+    info!("Initializing server framework");
     let result = HttpServer::new(|| {
         App::new()
                 .route("/", web::get().to(index))
                 .service(web::scope("/cards")
                         .route("/{id}", web::get().to(route_get_card)))
-                .service(web::scope("/user_set")
-                        .route("/{name}", web::get().to(route_get_user_set)))
+                .service(web::scope("/decks")
+                        .route("/{name}", web::get().to(route_get_deck)))
                 .service(web::scope("/search")
-                    .route("/user_set/{name}", web::get().to(route_query_user_sets)))
+                    .route("/decks/{name}", web::get().to(route_query_decks))
+                    .route("/cards/{name}", web::get().to(route_query_cards)))
     })
             .bind("127.0.0.1:8000")?
             .run()
