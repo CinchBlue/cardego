@@ -5,6 +5,7 @@ extern crate anyhow;
 pub mod models;
 pub mod schema;
 pub mod errors;
+pub mod image;
 
 use diesel::prelude::*;
 use diesel::{SqliteConnection};

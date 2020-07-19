@@ -9,6 +9,15 @@ components can be broken up into the front-end and back-end. This repo
 contains the back-end, and could potentially be used with a different
 front-end besides Tabletop Simulator.
 
+## Building the server
+
+You will need to build SQLite3, and use Rust and `cargo` to build the
+project.
+
+In addition, you will need the development libraries for Cairo in order
+to render cards. Please refer to https://github.com/wingtk/gvsbuild to
+build Cairo on Windows.
+
 ## Running the server
 
 You should execute `cardego-server` with the working directory set to
@@ -20,10 +29,14 @@ server to run properly are detailed in there.
 The SQLite3 database file `cards.db` should be placed within
 `runtime/data`. 
 
-## Building the server
+For Cairo, when running on Windows, you need the following DLLs copied
+from `C:\gtk-build\gtk\x64\release\bin` into the runtime directory for
+the executable:
 
-You will need to build SQLite3, and use Rust and `cargo` to build the
-project.
+- cairo.dll
+- freetype.dll
+- libpng16.dll
+- zlib1.dll
 
 ## Editing the server
 
@@ -31,5 +44,3 @@ One application that I've found helpful is to use SQLiteStudio to
 perform a lot of the database editing. Given that the server itself, as
 of the time of writing, does not have full CRUD capabilities, doing
 content changes at the database level is preferred.
-
-

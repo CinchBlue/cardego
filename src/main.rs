@@ -8,8 +8,8 @@ extern crate derive_more;
 use cardego_server::{CardDatabase};
 use cardego_server::errors::*;
 
-use actix_web::{web, App, HttpServer, Responder, HttpResponse};
-use log::{info};
+use actix_web::{web, App, HttpServer, Responder, HttpResponse, middleware};
+use log::{info, debug};
 
 use std::sync::{Arc, Mutex};
 
@@ -82,7 +82,7 @@ fn init_config() -> anyhow::Result<()>  {
 }
 
 fn init_state() -> std::io::Result<Arc<Mutex<ServerState>>> {
-    info!("Initializing database connection");
+    debug!("Initializing database connection");
     let db = CardDatabase::new ("runtime/data/databases/cards-new.db")
             .or(Err(ServerError::DatabaseConnectionError))?;
     
@@ -97,6 +97,8 @@ async fn main() -> std::io::Result<()> {
     info!("Initializing server framework");
     let result = HttpServer::new(|| {
         App::new()
+                .wrap(middleware::DefaultHeaders::new()
+                        .header("X-Version", "alpha-2"))
                 .route("/", web::get().to(index))
                 .service(web::scope("/cards")
                         .route("/{id}", web::get().to(route_get_card)))
@@ -106,7 +108,8 @@ async fn main() -> std::io::Result<()> {
                     .route("/decks/{name}", web::get().to(route_query_decks))
                     .route("/cards/{name}", web::get().to(route_query_cards)))
     })
-            .bind("127.0.0.1:8000")?
+            .bind("localhost:8000")?
+            //.bind("192.168.0.5:8000")?
             .run()
             .await;
     
