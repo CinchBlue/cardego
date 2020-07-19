@@ -8,6 +8,10 @@ pub enum ServerError {
     ConfigurationError,
     #[error("Could not conenct to database")]
     DatabaseConnectionError,
+    #[error("An image error occured with Cairo: {0}")]
+    CairoError(cairo::BorrowError),
+    #[error("File IO error occured with file: {0}")]
+    FileIOError(String)
 }
 
 #[derive(thiserror::Error, Debug)]

@@ -3,7 +3,7 @@ extern crate cardego_server;
 extern crate anyhow;
 extern crate thiserror;
 extern crate derive_more;
-
+extern crate cairo;
 
 use cardego_server::{CardDatabase};
 use cardego_server::errors::*;
@@ -12,7 +12,7 @@ use actix_web::{web, App, HttpServer, Responder, HttpResponse, middleware};
 use log::{info, debug};
 
 use std::sync::{Arc, Mutex};
-
+use std::fs::{File};
 
 struct ServerState {
     db: CardDatabase,
@@ -34,6 +34,39 @@ async fn route_get_card(
             .or(Err(ClientError::ResourceNotFound))?;
     
     Ok(HttpResponse::Ok().json(card))
+}
+
+async fn route_get_card_image(
+    path: web::Path<(i32,)>)
+    -> std::io::Result<HttpResponse> {
+
+    // Get the card data from the database.
+    let db = init_state()?;
+    let state = db.lock().or(Err(ServerError::DatabaseConnectionError))?;
+    let card_info = state.db.get_card(path.0)
+            .or(Err(ClientError::ResourceNotFound))?;
+   
+    // Generate the card's raw image data.
+    let mut surface  = cardego_server::image::render(&card_info);
+ 
+    // Write the raw image out to local storage.
+    let out_file_name = format!("runtime/data/cards/images/{}.png", path.0);
+    let mut out_file = File::create(&out_file_name)?;
+    surface.write_to_png(&mut out_file)
+            .or(Err(ServerError::FileIOError(out_file_name.clone())))?;
+
+    // Read the formatted data back in to be transmitted over the wire.
+    let new_file = File::open(&out_file_name)?;
+    let length = new_file.metadata()?.len();
+    let buffer = std::fs::read(&out_file_name)?;
+   
+    // We currently use PNG as our format.
+    Ok(
+        HttpResponse::Ok()
+                .content_type("image/png")
+                .content_length(length)
+                .body(buffer)
+    )
 }
 
 
@@ -98,11 +131,13 @@ async fn main() -> std::io::Result<()> {
     let result = HttpServer::new(|| {
         App::new()
                 .wrap(middleware::DefaultHeaders::new()
-                        .header("X-Version", "alpha-2"))
-                .route("/", web::get().to(index))
+                        .header("X-API-Version", "alpha-2"))
+        .route("/", web::get().to(index))
                 .service(web::scope("/cards")
-                        .route("/{id}", web::get().to(route_get_card)))
-                .service(web::scope("/decks")
+                        .route("/{id}", web::get().to(route_get_card))
+                        .route("/{id}/image.png",
+                            web::get().to(route_get_card_image)))
+        .service(web::scope("/decks")
                         .route("/{name}", web::get().to(route_get_deck)))
                 .service(web::scope("/search")
                     .route("/decks/{name}", web::get().to(route_query_decks))
