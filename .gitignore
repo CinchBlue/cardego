@@ -1,6 +1,15 @@
+# Rust-related build directories
 /target
 **/*.rs.bk
-.idea/
 Cargo.lock
+
+# IDE files
+.idea/
+
+# Windows executables/DLLs
+**/*.dll
+**/*.exe
+
+# Runtime directories
 logs/
 runtime/
