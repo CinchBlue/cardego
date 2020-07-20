@@ -6,19 +6,13 @@ extern crate derive_more;
 extern crate cairo;
 
 use cardego_server::{CardDatabase};
-use cardego_server::errors::{Result, AppError, ServerError, ClientError};
+use cardego_server::errors::{Result, ServerError, ClientError};
 
-use actix_web::{web, App, HttpServer, Responder, HttpResponse, middleware, HttpRequest};
+use actix_web::{web, App, HttpServer, Responder, HttpResponse, middleware};
 use log::{info, debug, warn};
-
-use anyhow::{Context, Error};
 
 use std::sync::{Arc, Mutex};
 use std::fs::{File};
-use std::future::Future;
-use futures::future::{Ready, err};
-
-
 
 struct ServerState {
     db: CardDatabase,

@@ -14,7 +14,7 @@ use anyhow::{Context, Result};
 use log::{debug, warn};
 
 use std::fs::{File};
-use std::io::{copy, Write};
+use std::io::{Write};
 
 
 
@@ -42,8 +42,8 @@ pub fn render_surface(card_info: &Card, local_image_filename: Option<String>)
     if let Some(local_image_filename) = local_image_filename {
 
         // Read the background image local file by expected download name.
-        let bg_filename = format!("runtime/data/cards/images/{:?}-art.png",
-            card_info.id);
+        let bg_filename = local_image_filename;
+        //format! ("runtime/data/cards/images/{:?}-art.png", card_info.id);
         let mut bg_file = File::open(&bg_filename)
             .context(format!("Couldn't open '{}'", &bg_filename))?;
         
@@ -67,12 +67,12 @@ pub fn render_surface(card_info: &Card, local_image_filename: Option<String>)
         let (mut size_x, mut size_y) = (bg_w, bg_h);
         debug!("preadjusted ratio: {:?}, {:?}", size_x, size_y);
         // NOTE: ratio should always be < 1
-        if (size_x > max_w) {
+        if size_x > max_w {
             let ratio = max_w/size_x;
             size_x *= ratio;
             size_y *= ratio;
         }
-        if (size_y > max_h) {
+        if size_y > max_h {
             let ratio = max_h/size_y;
             size_x *= ratio;
             size_y *= ratio;
@@ -174,7 +174,7 @@ pub async fn retrieve_image(url: &str, card_id: i32) -> anyhow::Result<String> {
     let fname = format!("runtime/data/cards/images/{:?}-art.png", card_id);
     let mut dest = File::create(&fname)?;
     
-    if (url.scheme() == "file") {
+    if url.scheme() == "file" {
         let filename = &url.path()[1..];
         
         debug!("reading from local file {:?}", &filename);
@@ -185,7 +185,7 @@ pub async fn retrieve_image(url: &str, card_id: i32) -> anyhow::Result<String> {
     } else {
         debug!("request from url: {}", url);
     
-        let mut response = match reqwest::get(url.clone()).await {
+        let response = match reqwest::get(url.clone()).await {
             Ok(res) => {
                 debug!("Found successful response");
                 res
@@ -205,7 +205,7 @@ pub async fn retrieve_image(url: &str, card_id: i32) -> anyhow::Result<String> {
         debug!("found content: {:?}", content);
     
         debug!("writing to {:?}", fname);
-        dest.write_all(&mut content);
+        dest.write_all(&mut content)?;
     };
     
     dest.flush()?;
