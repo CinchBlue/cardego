@@ -1,6 +1,6 @@
 # cardego-server
 
-**Current version: alpha-2**
+**Current version: alpha-3**
 
 This is the server for Cardego, the homebrew RPG system involving cards.
 
@@ -34,9 +34,19 @@ from `C:\gtk-build\gtk\x64\release\bin` into the runtime directory for
 the executable:
 
 - cairo.dll
+- ffi-7.dll
+- fontconfig.dll
 - freetype.dll
+- fribidi-0.dll
+- glib-2.0-0.dll
+- gobject-2.0-0.dll
+- iconv.dll
+- intl.dll
 - libpng16.dll
-- zlib1.dll
+- pango-1.0-0.dll
+- pangocairo-1.0-0.dll
+- pangoft2-1.0-0.dll
+- pangowin32-1.0-0.dll
 
 ## Editing the server
 
