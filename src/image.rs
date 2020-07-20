@@ -40,72 +40,7 @@ pub fn render_surface(card_info: &Card, local_image_filename: Option<String>)
 
     // Render the card background from the downloaded file
     if let Some(local_image_filename) = local_image_filename {
-
-        // Read the background image local file by expected download name.
-        let bg_filename = local_image_filename;
-        //format! ("runtime/data/cards/images/{:?}-art.png", card_info.id);
-        let mut bg_file = File::open(&bg_filename)
-            .context(format!("Couldn't open '{}'", &bg_filename))?;
-        
-        // Initialize the Cairo surface + context.
-        let bg_surface = ImageSurface::create_from_png(&mut bg_file)
-                .context(format!(
-                    "Could not get surface from background image file: '{}'",
-                    &bg_filename))?;
-      
-        // Keep track of the original image dimensions, but as f64 so that we
-        // don't need to cast all the time.
-        let (bg_w, bg_h) = (
-            bg_surface.get_width() as f64,
-            bg_surface.get_height() as f64);
-        
-        debug!("bg_w, bg_h = {:?}, {:?}", bg_w, bg_h);
-        debug!("target_x, target_y = {:?}, {:?}", target_x, target_y);
-    
-        // We want to keep the aspect ratio of the image, but calculate the
-        // scaling ratios to make the image fit inside of the "image box."
-        let (mut size_x, mut size_y) = (bg_w, bg_h);
-        debug!("preadjusted ratio: {:?}, {:?}", size_x, size_y);
-        // NOTE: ratio should always be < 1
-        if size_x > max_w {
-            let ratio = max_w/size_x;
-            size_x *= ratio;
-            size_y *= ratio;
-        }
-        if size_y > max_h {
-            let ratio = max_h/size_y;
-            size_x *= ratio;
-            size_y *= ratio;
-        }
-        debug!("adjusted ratio: {:?}, {:?}", size_x, size_y);
-        
-        // This is the final scaling transform ratio.
-        let (scale_x, scale_y) = (size_x/bg_w, size_y/bg_h);
-        debug!("scaling: {:?}, {:?}", scale_x, scale_y);
-   
-        // Calculate the final top-left coordinates of the image after
-        // the scaling factor is applied.
-        debug!("preadjusted target: {:?}, {:?}", target_x, target_y);
-        let (target_x, target_y) = (
-            (target_x - size_x/2.0) / scale_x,
-            (target_y - size_y/2.0) / scale_y
-        );
-        debug!("adjusted target: {:?}, {:?}", target_x, target_y);
-        
-    
-        // Render the background image, while making sure to push/pop the
-        // context state to remove the scaling off of future writes.
-        cxt.save();
-
-        // Scale first so that when we set the source surface at the xy
-        // coordinates, it will be in the correct place.
-        cxt.scale(scale_x, scale_y);
-        
-        // Render the image
-        cxt.set_source_surface(&bg_surface, target_x, target_y);
-        cxt.paint();
-        
-        cxt.restore();
+        render_background(&mut cxt, &local_image_filename, card_info.id)?;
     };
     
     // Set the color of text + the font family.
@@ -113,7 +48,9 @@ pub fn render_surface(card_info: &Card, local_image_filename: Option<String>)
     cxt.select_font_face("Noto Sans", FontSlant::Normal, FontWeight::Normal);
    
     // Pixel coordinates to draw (for the center of the box).
-    let (name_x, name_y) = (430.0, 89.0);
+    let (name_x, name_y) = (430.0, 90.0);
+    //let (id_x, id_y) = (725.0, 90.0);
+    let (id_x, id_y) = (430.0, 145.0);
     let (cardclass_x, cardclass_y) = (93.0, 88.0);
     let (speedaction_x, speedaction_y) = (375.0, 618.0);
     
@@ -121,7 +58,14 @@ pub fn render_surface(card_info: &Card, local_image_filename: Option<String>)
     let (desc_x, desc_y) = (59.0, 689.0);
     let (desc_w, desc_h) = (621, 285);
    
-    // Draw the name, cardclass, speed/action text.
+    // Draw the id, name, cardclass, speed/action text.
+    cxt.set_font_size(20.0);
+    text_centered(
+        &mut cxt,
+        &format!("(#{:?})", &card_info.id),
+        id_x,
+        id_y);
+    
     cxt.set_font_size(60.0);
     text_centered(&mut cxt, &card_info.name, name_x, name_y);
     
@@ -148,11 +92,84 @@ pub fn render_surface(card_info: &Card, local_image_filename: Option<String>)
     cxt.move_to(desc_x, desc_y);
     pangocairo::update_layout(&cxt, &layout);
     pangocairo::show_layout(&cxt, &layout);
-   
+    
     // Force a draw onto the surface.
     surface.flush();
     
     Ok(surface)
+}
+
+fn render_background(
+    cxt: &mut cairo::Context,
+    local_image_filename: &str,
+    card_id: i32)
+    -> Result<()>{
+    let (max_w, max_h) = (720.0, 380.0);
+    let (target_x, target_y) = (370.0, 370.0);
+    // Read the background image local file by expected download name.
+    let bg_filename = local_image_filename;
+    
+    //format! ("runtime/data/cards/images/{:?}-art.png", card_info.id);
+    let mut bg_file = File::open(&bg_filename).context(format!("Couldn't open '{}'", &bg_filename))?;
+    
+    // Initialize the Cairo surface + context.
+    let bg_surface = ImageSurface::create_from_png(&mut bg_file).context(format!(
+        "Could not get surface from background image file: '{}'",
+        &bg_filename))?;
+    
+    // Keep track of the original image dimensions, but as f64 so that we
+    // don't need to cast all the time.
+    let (bg_w, bg_h) = (
+        bg_surface.get_width() as f64,
+        bg_surface.get_height() as f64);
+    debug!("bg_w, bg_h = {:?}, {:?}", bg_w, bg_h);
+    debug!("target_x, target_y = {:?}, {:?}", target_x, target_y);
+    
+    // We want to keep the aspect ratio of the image, but calculate the
+    // scaling ratios to make the image fit inside of the "image box."
+    let (mut size_x, mut size_y) = (bg_w, bg_h);
+    debug!("preadjusted ratio: {:?}, {:?}", size_x, size_y);
+    
+    // NOTE: ratio should always be < 1
+    if size_x > max_w {
+        let ratio = max_w / size_x;
+        size_x *= ratio;
+        size_y *= ratio;
+    }
+    if size_y > max_h {
+        let ratio = max_h / size_y;
+        size_x *= ratio;
+        size_y *= ratio;
+    }
+    debug!("adjusted ratio: {:?}, {:?}", size_x, size_y);
+    
+    // This is the final scaling transform ratio.
+    let (scale_x, scale_y) = (size_x / bg_w, size_y / bg_h);
+    debug!("scaling: {:?}, {:?}", scale_x, scale_y);
+    
+    // Calculate the final top-left coordinates of the image after
+    // the scaling factor is applied.
+    debug!("preadjusted target: {:?}, {:?}", target_x, target_y);
+    let (target_x, target_y) = (
+        (target_x - size_x / 2.0) / scale_x,
+        (target_y - size_y / 2.0) / scale_y
+    );
+    debug!("adjusted target: {:?}, {:?}", target_x, target_y);
+    
+    // Render the background image, while making sure to push/pop the
+    // context state to remove the scaling off of future writes.
+    cxt.save();
+    
+    // Scale first so that when we set the source surface at the xy
+    // coordinates, it will be in the correct place.
+    cxt.scale(scale_x, scale_y);
+    
+    // Render the image.
+    cxt.set_source_surface(&bg_surface, target_x, target_y);
+    cxt.paint();
+    cxt.restore();
+    
+    Ok(())
 }
 
 // Draw centered text at the coordinates.
