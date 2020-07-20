@@ -33,10 +33,14 @@ impl CardDatabase {
     
     pub fn get_card(&self, card_id: i32) -> Result<Card> {
         use self::schema::cards::dsl::*;
+       
+        debug!("card_id: {}", card_id);
         
         let result = cards
                 .find(card_id)
                 .first(self.connection.as_ref())?;
+        
+        debug!("result found");
 
         Ok(result)
     }

@@ -6,6 +6,7 @@ table! {
         speed -> Text,
         name -> Text,
         desc -> Text,
+        image_url -> Nullable<Text>,
     }
 }
 

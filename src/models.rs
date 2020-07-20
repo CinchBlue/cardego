@@ -3,6 +3,7 @@ extern crate diesel;
 use super::schema::*;
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug)]
 #[derive(Serialize, Deserialize)]
 #[derive(Queryable)]
 pub struct Card {
@@ -12,8 +13,10 @@ pub struct Card {
     pub speed: String,
     pub name: String,
     pub desc: String,
+    pub image_url: Option<String>,
 }
 
+#[derive(Debug)]
 #[derive(Serialize, Deserialize)]
 #[derive(Insertable)]
 #[table_name = "cards"]
@@ -23,9 +26,11 @@ pub struct NewCard<'a> {
     pub speed: &'a str,
     pub name: &'a str,
     pub desc: &'a str,
+    pub image_url: Option<String>,
 }
 
 
+#[derive(Debug)]
 #[derive(Serialize, Deserialize)]
 #[derive(Queryable)]
 pub struct Deck {
@@ -34,6 +39,7 @@ pub struct Deck {
     pub name: String,
 }
 
+#[derive(Debug)]
 #[derive(Serialize, Deserialize)]
 #[derive(Insertable)]
 #[table_name = "decks"]
@@ -43,6 +49,7 @@ pub struct NewDeck<'a> {
 }
 
 
+#[derive(Debug)]
 #[derive(Serialize, Deserialize)]
 #[derive(Queryable)]
 pub struct DeckCardRelation {
@@ -52,6 +59,7 @@ pub struct DeckCardRelation {
 }
 
 
+#[derive(Debug)]
 #[derive(Serialize, Deserialize)]
 #[derive(Insertable)]
 #[table_name = "decks_cards_relation"]

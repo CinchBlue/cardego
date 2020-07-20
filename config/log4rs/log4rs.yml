@@ -28,7 +28,7 @@ appenders:
 
 # Set the default logging level and attach appenders to the root.
 root:
-  level: info
+  level: debug
   appenders:
     - application
     - console
