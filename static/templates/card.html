@@ -1,0 +1,35 @@
+<html><head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="card.css">
+</head>
+<body class="big-text sans-serif">
+<div class="background">
+    <div class="header">
+        <div class="table">
+            <div class="cardclass-circle cardclass-background-color-{{cardclass}}">
+                <div class="cardclass-section">
+                    <span class="cardclass-text title-text giant-text">{{cardclass}}</span>
+                </div>
+            </div>
+            <div class="title-section">
+                <span class="title-text large-text">{{name}}
+                <br />
+                <span class="title-text small-text">(#{{id}})</span> 
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="card-image">
+        <img src="{{image_url}}" />
+    </div>
+    <div class="card-body">
+        <div class="card-stats">
+            <div class="card-stats-item"><strong>Speed:</strong> {{speed}}</div>
+            <div class="card-stats-item"><strong>Action:</strong> {{action}}</div>
+        </div>
+        <div class="card-description big-text">
+            {{description}}
+        </div>
+    </div>
+</div>
+</body></html>

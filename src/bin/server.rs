@@ -1,3 +1,5 @@
+#[macro_use] extern crate lazy_static;
+
 extern crate actix_web;
 extern crate cardego_server;
 extern crate anyhow;
@@ -16,6 +18,7 @@ use std::fs::{File};
 
 struct ServerState {
     db: CardDatabase,
+    card_html_template: String,
 }
 
 async fn index() -> impl Responder {
@@ -33,6 +36,50 @@ async fn route_get_card(
     
     Ok(HttpResponse::Ok().json(card))
 }
+
+async fn route_get_card_image_by_html(
+    path: web::Path<(i32,)>)
+    -> Result<HttpResponse> {
+    
+    lazy_static! {
+        static ref html_template: String = std::fs::read_to_string(
+            cardego_server::image::CARD_TEMPLATE_HTML_FILE_PATH).unwrap();
+    }
+    
+    use cardego_server::image;
+    
+    let card_id = path.0;
+    
+    // Get the card data from the database.
+    let db = init_state()?;
+    let state = db.lock().or(Err(ServerError::DatabaseConnectionError))?;
+    let card_info = state.db.get_card(card_id)
+            .or(Err(ClientError::ResourceNotFound))?;
+    
+    debug!("got card info: {:?}", &card_info);
+    
+    // Generate the image from the template and write it into file.
+    let out_file_name = image::generate_image_from_html_template(
+        &card_info,
+        &html_template)?;
+    
+    // Read the formatted data back in to be transmitted over the wire.
+    let new_file = File::open(&out_file_name)?;
+    let length = new_file.metadata()?.len();
+    let buffer = std::fs::read(&out_file_name)?;
+    
+    info!("Generated local image {:?}", out_file_name);
+    
+    // We currently use PNG as our format.
+    Ok(
+        HttpResponse::Ok()
+                .content_type("image/png")
+                .content_length(length)
+                .body(buffer)
+    )
+}
+
+
 
 async fn route_get_card_image(
     path: web::Path<(i32,)>)
@@ -79,6 +126,8 @@ async fn route_get_card_image(
     let new_file = File::open(&out_file_name)?;
     let length = new_file.metadata()?.len();
     let buffer = std::fs::read(&out_file_name)?;
+    
+    info!("Generated local image {:?}", out_file_name);
     
     // We currently use PNG as our format.
     Ok(
@@ -130,20 +179,34 @@ async fn route_query_cards(
 fn init_config() -> anyhow::Result<()>  {
     log4rs::init_file("config/log4rs/log4rs.yml", Default::default())?;
     info!("Finished initializing log4rs");
+    
+    std::fs::copy("static/templates/card.css",
+        "runtime/data/cards/images/templates/card.css")?;
+    info!("Copied 'card.css' from into runtime cards directory.");
+    
     info!("Finished reading server configuration");
     Ok(())
 }
 
-fn init_state() -> Result<Arc<Mutex<ServerState>>> {
+fn init_state() -> anyhow::Result<Arc<Mutex<ServerState>>> {
     debug!("Initializing database connection");
     let db = CardDatabase::new("runtime/data/databases/cards.db")
             .or(Err(ServerError::DatabaseConnectionError))?;
+    let card_html_template = std::fs::read_to_string
+            (cardego_server::image::CARD_TEMPLATE_HTML_FILE_PATH)?.parse()?;
     
-    Ok(Arc::new(Mutex::new(ServerState { db })))
+    Ok(Arc::new(Mutex::new(
+        ServerState {
+            db,
+            card_html_template,
+        }
+    )))
 }
 
 #[actix_rt::main]
 async fn main() -> Result<()> {
+    let args: Vec<String> = std::env::args().collect();
+    
     init_config()
             .or(Err(ServerError::ConfigurationError))?;
     
@@ -155,16 +218,22 @@ async fn main() -> Result<()> {
         .route("/", web::get().to(index))
                 .service(web::scope("/cards")
                         .route("/{id}", web::get().to(route_get_card))
+                       
                         .route("/{id}/image.png",
-                            web::get().to(route_get_card_image)))
+                            web::get().to(route_get_card_image_by_html)))
+                        //.route("/{id}/image.png",
+                        //    web::get().to(route_get_card_image)))
         .service(web::scope("/decks")
                         .route("/{name}", web::get().to(route_get_deck)))
                 .service(web::scope("/search")
                     .route("/decks/{name}", web::get().to(route_query_decks))
                     .route("/cards/{name}", web::get().to(route_query_cards)))
     })
-            .bind("localhost:8000")?
+            // Local testing
+            .bind(&args[1])?
             //.bind("192.168.0.5:8000")?
+            // External testing
+            //.bind("75.172.155.101:8000")?
             .run()
             .await;
     

@@ -1,9 +1,11 @@
+
 extern crate cairo;
 extern crate pango;
 extern crate pangocairo;
 extern crate reqwest;
 extern crate anyhow;
 extern crate log;
+extern crate regex;
 
 use crate::models::Card;
 
@@ -15,14 +17,72 @@ use log::{debug, warn};
 
 use std::fs::{File};
 use std::io::{Write};
-
-
-
+use self::regex::NoExpand;
 
 pub const CARD_FRONT_FILE_PATH: &str =
-    "runtime/data/cards/images/templates/card_front.png";
+    "static/templates/card_front.png";
 pub const CARD_BACK_FILE_PATH: &str =
-    "runtime/data/cards/images/templates/card_back.png";
+    "static/templates/card_back.png";
+
+pub const CARD_TEMPLATE_HTML_FILE_PATH: &str =
+    "static/templates/card.html";
+
+
+/// Returns the filename that was generated.
+pub fn generate_image_from_html_template(
+    card_info: &Card,
+    html_template: &str) -> Result<String> {
+    
+    // Replace fields in a copy of the HTML template with the card fields.
+    let desc = &card_info.desc.replace(r"(Roll", "<br/>(Roll");
+    let desc = desc.replace(r"[", "<br/>[");
+    
+    let template = html_template.clone().to_owned();
+    let template = template.replace(r"{{id}}", &card_info.id.to_string());
+    let template = template.replace(r"{{cardclass}}", &card_info.cardclass);
+    let template = template.replace(r"{{name}}", &card_info.name);
+    let template = template.replace(r"{{action}}", &card_info.action);
+    let template = template.replace(r"{{speed}}", &card_info.speed);
+    let template = template.replace(r"{{image_url}}",
+        card_info.image_url.as_ref().unwrap_or(&"".to_string()));
+    let template = template.replace(r"{{description}}", &desc);
+    
+    debug!("substituted into template: {:?}", template);
+    
+    let expected_image_path =
+            format!("runtime/data/cards/images/{}.png", &card_info.id);
+    
+    debug!("card template file path: {:?}", CARD_TEMPLATE_HTML_FILE_PATH);
+    debug!("expected image path: {:?}", expected_image_path);
+    
+    // Write the substituted HTML into a file
+    let substituted_html_path = format!(
+        "runtime/data/cards/images/templates/{}.html", &card_info.id);
+    std::fs::write(&substituted_html_path, &template)?;
+    
+    debug!("finished writing substituted html to: {:?}",
+        substituted_html_path);
+    
+    // Spawn off a sub-process for wkhtmltoimage to convert the image.
+    let mut child = std::process::Command::new("./wkhtmltoimage")
+            .args(vec!["--height","1070",
+                "--width", "750",
+                "--enable-local-file-access",
+                &substituted_html_path,
+                &expected_image_path])
+            .output()?;
+    
+    if !child.status.success() {
+        use crate::ServerError::FileIOError;
+        Err(FileIOError(std::str::from_utf8(&child.stderr)?.to_string()))?
+    } else {
+        debug!("wkhtmltoimage returned success for HTML -> PNG")
+    }
+    
+    
+    // Once the image is generated, return the path to it.
+    Ok(expected_image_path.to_string())
+}
 
 pub fn render_surface(card_info: &Card, local_image_filename: Option<String>)
     -> Result<ImageSurface> {
@@ -40,7 +100,11 @@ pub fn render_surface(card_info: &Card, local_image_filename: Option<String>)
 
     // Render the card background from the downloaded file
     if let Some(local_image_filename) = local_image_filename {
-        render_background(&mut cxt, &local_image_filename, card_info.id)?;
+        match render_background(&mut cxt, &local_image_filename, card_info.id) {
+            Ok(_) => debug!("Generated card background from {:?}",
+                local_image_filename),
+            Err(err) => warn!("Failed to render card background: {:?}", err),
+        }
     };
     
     // Set the color of text + the font family.
@@ -59,15 +123,18 @@ pub fn render_surface(card_info: &Card, local_image_filename: Option<String>)
     let (desc_w, desc_h) = (621, 285);
    
     // Draw the id, name, cardclass, speed/action text.
+    
+    cxt.set_font_size(if card_info.name.len() < 16 { 60.0 } else { 35.0 });
+    cxt.select_font_face("Noto Sans", FontSlant::Normal, FontWeight::Bold);
+    text_centered(&mut cxt, &card_info.name, name_x, name_y);
+    
     cxt.set_font_size(20.0);
+    cxt.select_font_face("Noto Sans", FontSlant::Normal, FontWeight::Normal);
     text_centered(
         &mut cxt,
         &format!("(#{:?})", &card_info.id),
         id_x,
         id_y);
-    
-    cxt.set_font_size(60.0);
-    text_centered(&mut cxt, &card_info.name, name_x, name_y);
     
     cxt.set_font_size(65.0);
     text_centered(&mut cxt, &card_info.cardclass, cardclass_x, cardclass_y);
@@ -92,6 +159,7 @@ pub fn render_surface(card_info: &Card, local_image_filename: Option<String>)
     cxt.move_to(desc_x, desc_y);
     pangocairo::update_layout(&cxt, &layout);
     pangocairo::show_layout(&cxt, &layout);
+    drop(layout);
     
     // Force a draw onto the surface.
     surface.flush();

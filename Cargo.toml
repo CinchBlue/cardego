@@ -1,6 +1,6 @@
 [package]
 name = "cardego-server"
-version = "0.2.0"
+version = "0.4.0"
 authors = ["Austin Tasato <aytasato@gmail.com>"]
 edition = "2018"
 build = 'build.rs'
@@ -28,6 +28,9 @@ reqwest = "0.10.6"
 futures = "=0.3.2"
 futures-util = "=0.3.2"
 futures-macro = "=0.3.2"
+
+regex = "1"
+lazy_static = "1"
 
 [[bin]]
 name = "server"
