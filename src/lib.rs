@@ -46,6 +46,43 @@ impl CardDatabase {
         Ok(result)
     }
     
+    pub fn put_deck(&mut self, name: String, ids: Vec<i32>) -> Result<Deck> {
+        debug!("put_deck: {} {:?}", name, ids);
+    
+        use schema::decks;
+        use schema::decks_cards_relation;
+   
+        // First, insert the deck entry
+        let new_deck = NewDeck { id: None, name: &name, decktype: "user" };
+    
+        let new_deck_result = diesel::insert_into(decks::table)
+                .values(&new_deck)
+                //.on_conflict(decks::name)
+                //.do_update()
+                //.set(&new_deck)
+                .execute(self.connection.as_mut())?;
+        
+        // Get the id of the deck
+        let new_deck = self.get_deck_by_name(&name)?;
+        let last_id = new_deck.id;
+        
+        debug!("Created new deck with id {}", last_id);
+    
+        
+        // Then, insert the deck's cards into the deck itself
+        let new_deck_card_relations: Vec<NewDeckCardRelation> = ids.iter()
+                .map(|card_id|  NewDeckCardRelation { deck_id: last_id,
+                    card_id: *card_id, })
+                .collect();
+        
+        diesel::insert_into(decks_cards_relation::table)
+                .values(&new_deck_card_relations)
+                .execute(self.connection.as_mut())?;
+        
+        debug!("put_deck succeeded");
+        Ok(new_deck)
+    }
+    
     pub fn get_cards_by_deck_name(&self, set_name: String)
         -> Result<Vec<Card>> {
         use self::schema::*;
@@ -72,6 +109,19 @@ impl CardDatabase {
         let results = query.load(self.connection.as_ref())?;
         
         Ok(results)
+    }
+    
+    pub fn get_deck_by_name(&self, s: &str)
+        -> Result<Deck> {
+        use self::schema::decks::dsl::*;
+        
+        let result = decks
+                .filter(name.like(s))
+                .get_result(self.connection.as_ref())?;
+        
+        debug!("{:?}", result);
+        
+        Ok(result)
     }
     
     pub fn query_decks_by_name(&self, s: String)

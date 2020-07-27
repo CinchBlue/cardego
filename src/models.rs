@@ -44,6 +44,7 @@ pub struct Deck {
 #[derive(Insertable)]
 #[table_name = "decks"]
 pub struct NewDeck<'a> {
+    pub id: Option<i32>,
     pub name: &'a str,
     pub decktype: &'a str,
 }
@@ -51,7 +52,8 @@ pub struct NewDeck<'a> {
 
 #[derive(Debug)]
 #[derive(Serialize, Deserialize)]
-#[derive(Queryable)]
+#[derive(Queryable, Insertable)]
+#[table_name = "decks_cards_relation"]
 pub struct DeckCardRelation {
     pub id: i32,
     pub deck_id: i32,

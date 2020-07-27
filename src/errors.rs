@@ -27,6 +27,8 @@ pub enum ServerError {
 pub enum ClientError {
     #[error("Requested resource not found")]
     ResourceNotFound,
+    #[error("Invalid input for operation found: {0}")]
+    InvalidInput(String),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -88,6 +90,9 @@ impl From<ClientError> for std::io::Error {
         match err {
             ClientError::ResourceNotFound => std::io::Error::new(
                 std::io::ErrorKind::NotFound,
+                err),
+            ClientError::InvalidInput(_) => std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
                 err),
         }
     }

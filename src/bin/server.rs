@@ -8,7 +8,7 @@ extern crate derive_more;
 extern crate cairo;
 
 use cardego_server::{CardDatabase};
-use cardego_server::errors::{Result, ServerError, ClientError};
+use cardego_server::errors::{Result, ServerError, ClientError, AppError};
 
 use actix_web::{web, App, HttpServer, Responder, HttpResponse, middleware};
 use log::{info, debug, warn};
@@ -152,6 +152,32 @@ async fn route_get_deck(
     Ok(HttpResponse::Ok().json(cards))
 }
 
+async fn route_put_deck(
+    path: web::Path<String>,
+    body: String)
+    -> Result<HttpResponse> {
+    
+    // Validate that the body is a list of i32
+    let strings: Vec<&str> = body.split_whitespace().collect();
+    let card_ids: Vec<i32> = strings.iter()
+            .flat_map(|s| s.parse())
+            .collect();
+    
+    if strings.len() != card_ids.len() {
+        return Err(AppError::Client(ClientError::InvalidInput(
+            "One of the strings provided was not a valid card id".to_owned())
+        ));
+    }
+    
+    // Init the database state
+    let db = init_state()?;
+    let mut state = db.lock().or(Err(ServerError::DatabaseConnectionError))?;
+    
+    let new_deck = state.db.put_deck(path.to_string(), card_ids)?;
+    
+    Ok(HttpResponse::Ok().json(new_deck))
+}
+
 async fn route_query_decks(
     path: web::Path<String>)
     -> Result<HttpResponse> {
@@ -223,8 +249,9 @@ async fn main() -> Result<()> {
                             web::get().to(route_get_card_image_by_html)))
                         //.route("/{id}/image.png",
                         //    web::get().to(route_get_card_image)))
-        .service(web::scope("/decks")
-                        .route("/{name}", web::get().to(route_get_deck)))
+        .service(web::resource("/decks/{name}")
+                        .route(web::get().to(route_get_deck))
+                        .route(web::put().to(route_put_deck)))
                 .service(web::scope("/search")
                     .route("/decks/{name}", web::get().to(route_query_decks))
                     .route("/cards/{name}", web::get().to(route_query_cards)))

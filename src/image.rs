@@ -64,7 +64,7 @@ pub fn generate_image_from_html_template(
         substituted_html_path);
     
     // Spawn off a sub-process for wkhtmltoimage to convert the image.
-    let mut child = std::process::Command::new("./wkhtmltoimage")
+    let child = std::process::Command::new("./wkhtmltoimage")
             .args(vec!["--height","1070",
                 "--width", "750",
                 "--enable-local-file-access",
