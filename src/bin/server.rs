@@ -231,16 +231,22 @@ fn init_state() -> anyhow::Result<Arc<Mutex<ServerState>>> {
 
 #[actix_rt::main]
 async fn main() -> Result<()> {
+    // Collect command line arguments
     let args: Vec<String> = std::env::args().collect();
-    
+   
+    // Initialize all server + dependency config
     init_config()
             .or(Err(ServerError::ConfigurationError))?;
-    
+   
+    // Create the HTTP server with routing below and initialize it.
     info!("Initializing server framework");
     let result = HttpServer::new(|| {
         App::new()
                 .wrap(middleware::DefaultHeaders::new()
                         .header("X-API-Version", "alpha-3"))
+                // ALWAYS have compression on! This is a major performance
+                // boost for amount of bytes per image get!
+                .wrap(middleware::Compress::default())
         .route("/", web::get().to(index))
                 .service(web::scope("/cards")
                         .route("/{id}", web::get().to(route_get_card))
