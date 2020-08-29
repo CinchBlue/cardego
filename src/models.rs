@@ -3,7 +3,6 @@ extern crate askama;
 
 use super::schema::*;
 use serde::{Deserialize, Serialize};
-use askama::Template;
 
 use std::collections::HashMap;
 

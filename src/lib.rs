@@ -1,6 +1,5 @@
 #[macro_use] extern crate diesel;
 #[macro_use] extern crate lazy_static;
-#[macro_use] extern crate askama;
 
 extern crate anyhow;
 
@@ -56,7 +55,7 @@ impl CardDatabase {
         // First, insert the deck entry
         let new_deck = NewDeck { id: None, name: &name, decktype: "user" };
     
-        let new_deck_result = diesel::insert_into(decks::table)
+        diesel::insert_into(decks::table)
                 .values(&new_deck)
                 //.on_conflict(decks::name)
                 //.do_update()

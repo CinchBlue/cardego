@@ -1,5 +1,3 @@
-#[macro_use] extern crate lazy_static;
-
 extern crate actix_web;
 extern crate cardego_server;
 extern crate anyhow;
@@ -11,14 +9,13 @@ use cardego_server::{CardDatabase};
 use cardego_server::errors::{Result, ServerError, ClientError, AppError};
 
 use actix_web::{web, App, HttpServer, Responder, HttpResponse, middleware};
-use log::{info, debug, warn};
+use log::{info, debug};
 
 use std::sync::{Arc, Mutex};
 use std::fs::{File};
 
 struct ServerState {
     db: CardDatabase,
-    card_html_template: String,
 }
 
 async fn index() -> impl Responder {
@@ -41,11 +38,6 @@ async fn route_get_card_image_by_html(
     path: web::Path<(i32,)>)
     -> Result<HttpResponse> {
     
-    lazy_static! {
-        static ref html_template: String = std::fs::read_to_string(
-            cardego_server::image::CARD_TEMPLATE_HTML_FILE_PATH).unwrap();
-    }
-    
     use cardego_server::image;
     
     let card_id = path.0;
@@ -59,7 +51,7 @@ async fn route_get_card_image_by_html(
     debug!("got card info: {:?}", &card_info);
     
     // Generate the image from the template and write it into file.
-    let out_file_name = image::generate_image_from_html_template(
+    let out_file_name = image::generate_card_image(
         &card_info)?;
     
     // Read the formatted data back in to be transmitted over the wire.
@@ -121,7 +113,9 @@ async fn route_put_deck(
 async fn route_get_deck_cardsheet(
     path: web::Path<String>)
     -> Result<HttpResponse> {
-    
+    use cardego_server::image;
+   
+    // Get a connection to the database
     let db = init_state()?;
     let state = db.lock().or(Err(ServerError::DatabaseConnectionError))?;
    
@@ -129,9 +123,25 @@ async fn route_get_deck_cardsheet(
     let cards = state.db.get_cards_by_deck_name(path.to_string())
             .or(Err(ClientError::ResourceNotFound))?;
     
-    // Get the
+    // Generate the image from the template and write it into file.
+    let out_file_name = image::generate_deck_cardsheet_image(
+        &path,
+        cards)?;
     
-    Ok(HttpResponse::Ok().json(cards))
+    // Read the formatted data back in to be transmitted over the wire.
+    let new_file = File::open(&out_file_name)?;
+    let length = new_file.metadata()?.len();
+    let buffer = std::fs::read(&out_file_name)?;
+    
+    info!("Generated local image {:?}", out_file_name);
+    
+    // We currently use PNG as our format.
+    Ok(
+        HttpResponse::Ok()
+                .content_type("image/png")
+                .content_length(length)
+                .body(buffer)
+    )
 }
 
 async fn route_query_decks(
@@ -164,7 +174,10 @@ fn init_config() -> anyhow::Result<()>  {
     
     std::fs::copy("static/templates/card.css",
         "runtime/data/cards/images/templates/card.css")?;
-    info!("Copied 'card.css' from into runtime cards directory.");
+    info!("Copied 'card.css' from into runtime/data/cards/images/templates directory.");
+    std::fs::copy("static/templates/card.css",
+        "runtime/data/decks/images/templates/card.css")?;
+    info!("Copied 'card.css' from into runtime/data/decks/images/templates directory.");
     
     info!("Finished reading server configuration");
     Ok(())
@@ -175,13 +188,9 @@ fn init_state() -> anyhow::Result<Arc<Mutex<ServerState>>> {
     let db = CardDatabase::new("runtime/data/databases/cards.db")
             .or(Err(ServerError::DatabaseConnectionError))?;
             
-    let card_html_template = std::fs::read_to_string
-            (cardego_server::image::CARD_TEMPLATE_HTML_FILE_PATH)?.parse()?;
-    
     Ok(Arc::new(Mutex::new(
         ServerState {
             db,
-            card_html_template,
         }
     )))
 }
@@ -207,12 +216,13 @@ async fn main() -> Result<()> {
         .route("/", web::get().to(index))
                 .service(web::scope("/cards")
                         .route("/{id}", web::get().to(route_get_card))
-                       
                         .route("/{id}/image.png",
                             web::get().to(route_get_card_image_by_html)))
-        .service(web::resource("/decks/{name}")
-                        .route(web::get().to(route_get_deck))
-                        .route(web::put().to(route_put_deck)))
+        .service(web::scope("/decks")
+                        .route("/{name}", web::get().to(route_get_deck))
+                        .route("/{name}", web::put().to(route_put_deck))
+                        .route("/{name}/image.png",
+                            web::get().to (route_get_deck_cardsheet)))
                 .service(web::scope("/search")
                     .route("/decks/{name}", web::get().to(route_query_decks))
                     .route("/cards/{name}", web::get().to(route_query_cards)))
