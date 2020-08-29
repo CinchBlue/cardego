@@ -233,6 +233,7 @@ fn init_state() -> anyhow::Result<Arc<Mutex<ServerState>>> {
     debug!("Initializing database connection");
     let db = CardDatabase::new("runtime/data/databases/cards.db")
             .or(Err(ServerError::DatabaseConnectionError))?;
+            
     let card_html_template = std::fs::read_to_string
             (cardego_server::image::CARD_TEMPLATE_HTML_FILE_PATH)?.parse()?;
     
@@ -258,7 +259,7 @@ async fn main() -> Result<()> {
     let result = HttpServer::new(|| {
         App::new()
                 .wrap(middleware::DefaultHeaders::new()
-                        .header("X-API-Version", "alpha-3"))
+                        .header("X-API-Version", "alpha-5"))
                 // ALWAYS have compression on! This is a major performance
                 // boost for amount of bytes per image get!
                 .wrap(middleware::Compress::default())
@@ -277,11 +278,8 @@ async fn main() -> Result<()> {
                     .route("/decks/{name}", web::get().to(route_query_decks))
                     .route("/cards/{name}", web::get().to(route_query_cards)))
     })
-            // Local testing
+            // Local testing? Use localhost:80 for HTTP
             .bind(&args[1])?
-            //.bind("192.168.0.5:8000")?
-            // External testing
-            //.bind("75.172.155.101:8000")?
             .run()
             .await;
     
