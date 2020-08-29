@@ -1,0 +1,17 @@
+{% extends "common.html" %}
+
+{% import "macro-card.html" as macrocard %}
+
+{% block content %}
+<table>
+    <tr>
+    {%- for card in cards -%}
+    {%- if loop.index0 % 6 == 0 && loop.index0 > 0 -%}
+    </tr>
+    <tr>
+    {%- endif -%}
+        <td>{% call macrocard::render_card(card.id, card.cardclass, card.cardclass_long, card.name, card.speed, card.action, card.desc, card.image_url) %}</td>
+    {%- endfor -%}
+    </tr>
+</table>
+{%- endblock -%}

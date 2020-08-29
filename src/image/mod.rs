@@ -1,4 +1,3 @@
-
 extern crate cairo;
 extern crate pango;
 extern crate pangocairo;
@@ -7,7 +6,12 @@ extern crate anyhow;
 extern crate log;
 extern crate regex;
 
+pub mod templates;
+
 use crate::models::Card;
+use crate::image::templates::{SingleCardTemplate, CardsheetTemplate};
+
+use askama::Template;
 
 use cairo::{ImageSurface, FontSlant, FontWeight};
 
@@ -27,9 +31,52 @@ pub const CARD_BACK_FILE_PATH: &str =
 pub const CARD_TEMPLATE_HTML_FILE_PATH: &str =
     "static/templates/card.html";
 
+pub fn generate_image_from_html_template(
+    card_info: &Card)
+    -> Result<String> {
+    
+    let expected_image_path =
+            format!("runtime/data/cards/images/{}.png", &card_info.id);
+    
+    let substituted_template = SingleCardTemplate::new(card_info).render()?;
+    
+    debug!("substituted into template: {:?}", substituted_template);
+    
+    
+    debug!("card template file path: {:?}", CARD_TEMPLATE_HTML_FILE_PATH);
+    debug!("expected image path: {:?}", expected_image_path);
+    
+    // Write the substituted HTML into a file
+    let substituted_html_path = format!(
+        "runtime/data/cards/images/templates/{}.html", &card_info.id);
+    std::fs::write(&substituted_html_path, &substituted_template)?;
+    
+    debug!("finished writing substituted html to: {:?}",
+        substituted_html_path);
+    
+    // Spawn off a sub-process for wkhtmltoimage to convert the image.
+    let child = std::process::Command::new("./wkhtmltoimage")
+            .args(vec!["--height","1070",
+                "--width", "750",
+                "--enable-local-file-access",
+                &substituted_html_path,
+                &expected_image_path])
+            .output()?;
+    
+    if !child.status.success() {
+        use crate::ServerError::FileIOError;
+        Err(FileIOError(std::str::from_utf8(&child.stderr)?.to_string()))?
+    } else {
+        debug!("wkhtmltoimage returned success for HTML -> PNG")
+    }
+    
+    
+    // Once the image is generated, return the path to it.
+    Ok(expected_image_path.to_string())
+}
 
 /// Returns the filename that was generated.
-pub fn generate_image_from_html_template(
+pub fn generate_image_from_html_template_old(
     card_info: &Card,
     html_template: &str) -> Result<String> {
     

@@ -1,0 +1,7 @@
+{% extends "common.html" %}
+
+{% import "macro-card.html" as macrocard %}
+
+{% block content %}
+{% call macrocard::render_card(id, cardclass, cardclass_long, name, speed, action, desc, image_url) %}
+{% endblock %}

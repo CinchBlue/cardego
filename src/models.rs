@@ -1,7 +1,11 @@
 extern crate diesel;
+extern crate askama;
 
 use super::schema::*;
 use serde::{Deserialize, Serialize};
+use askama::Template;
+
+use std::collections::HashMap;
 
 #[derive(Debug)]
 #[derive(Serialize, Deserialize)]
@@ -69,3 +73,22 @@ pub struct NewDeckCardRelation {
     pub deck_id: i32,
     pub card_id: i32,
 }
+
+
+lazy_static! {
+    pub static ref TRAIT_SHORT_TO_FULLNAME: HashMap<String, &'static str> = {
+        let mut m = HashMap::new();
+        m.insert("Kn".to_string(), "Knowledge");
+        m.insert("Tr".to_string(), "Trait");
+        m.insert("Eq".to_string(), "Equipment");
+        m.insert("Ar".to_string(), "Armor");
+        m.insert("Co".to_string(), "Consumable");
+        m.insert("Te".to_string(), "Technique");
+        m.insert("Sp".to_string(), "Spell");
+        m.insert("Po".to_string(), "Power");
+        m.insert("1H".to_string(), "1-Handed Arms");
+        m.insert("2H".to_string(), "2-Handed Arms");
+        m
+    };
+}
+

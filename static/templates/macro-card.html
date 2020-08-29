@@ -1,4 +1,5 @@
-<div class="background big-text sans-serif ">
+{%- macro render_card(id, cardclass, cardclass_long, name, speed, action, desc, image_url) -%}
+<div class="background big-text sans-serif">
     <div class="header">
         <div class="table">
             <div class="cardclass-circle cardclass-background-color-{{cardclass}}">
@@ -28,3 +29,4 @@
         </div>
     </div>
 </div>
+{%- endmacro -%}

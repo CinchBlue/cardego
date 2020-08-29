@@ -60,8 +60,7 @@ async fn route_get_card_image_by_html(
     
     // Generate the image from the template and write it into file.
     let out_file_name = image::generate_image_from_html_template(
-        &card_info,
-        &html_template)?;
+        &card_info)?;
     
     // Read the formatted data back in to be transmitted over the wire.
     let new_file = File::open(&out_file_name)?;
@@ -80,9 +79,9 @@ async fn route_get_card_image_by_html(
 }
 
 
-
 async fn route_get_card_image(
-    path: web::Path<(i32,)>)
+    path: web::Path<(i32,)>,
+    req: web::HttpRequest)
     -> Result<HttpResponse> {
     
     use cardego_server::image;
@@ -176,6 +175,22 @@ async fn route_put_deck(
     let new_deck = state.db.put_deck(path.to_string(), card_ids)?;
     
     Ok(HttpResponse::Ok().json(new_deck))
+}
+
+async fn route_get_deck_cardsheet(
+    path: web::Path<String>)
+    -> Result<HttpResponse> {
+    
+    let db = init_state()?;
+    let state = db.lock().or(Err(ServerError::DatabaseConnectionError))?;
+   
+    // Get the cards.
+    let cards = state.db.get_cards_by_deck_name(path.to_string())
+            .or(Err(ClientError::ResourceNotFound))?;
+    
+    // Get thegg
+    
+    Ok(HttpResponse::Ok().json(cards))
 }
 
 async fn route_query_decks(

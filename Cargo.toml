@@ -32,7 +32,14 @@ futures-macro = "=0.3.2"
 regex = "1"
 lazy_static = "1"
 
+askama = "0.10.3"
+
 [[bin]]
 name = "server"
+test = false
+bench = false
+
+[[bin]]
+name = "sandbox"
 test = false
 bench = false
