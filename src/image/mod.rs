@@ -1,6 +1,3 @@
-extern crate cairo;
-extern crate pango;
-extern crate pangocairo;
 extern crate reqwest;
 extern crate anyhow;
 extern crate log;
@@ -25,23 +22,34 @@ pub const CARD_FRONT_FILE_PATH: &str =
 pub const CARD_BACK_FILE_PATH: &str =
     "static/templates/card_back.png";
 
+pub fn generate_card_image_html_string(
+    card_info: &Card)
+    -> Result<String> {
+    
+    let substituted_template = SingleCardTemplate::new(card_info).render()?;
+    
+    debug!("substituted into template: {:?}", substituted_template);
+    
+    Ok(substituted_template.to_string())
+}
+
 /// Returns the path of the image it generated.
 pub fn generate_card_image(
     card_info: &Card)
     -> Result<String> {
     
+    
+    let substituted_template_string = generate_card_image_html_string(
+        card_info)?;
+    
     let expected_image_path =
             format!("runtime/data/cards/images/{}.png", &card_info.id);
-    
-    let substituted_template = SingleCardTemplate::new(card_info).render()?;
-    
-    debug!("substituted into template: {:?}", substituted_template);
     info!("expected image path: {:?}", expected_image_path);
     
     // Write the substituted HTML into a file
     let substituted_html_path = format!(
         "runtime/data/cards/images/templates/{}.html", &card_info.id);
-    std::fs::write(&substituted_html_path, &substituted_template)?;
+    std::fs::write(&substituted_html_path, &substituted_template_string)?;
     
     debug!("finished writing substituted html to: {:?}",
         substituted_html_path);

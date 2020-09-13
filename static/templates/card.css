@@ -53,10 +53,10 @@ tr {
 }
 
 .cardclass-circle {
-    width: 100%;
+    width: 50px;
     height: 80%;
     border-radius: 100%;
-    border: 0.2vw solid #C6C6C6;
+    border: 0.5vw solid #C6C6C6;
     margin-top: 10%;
     margin-bottom: 10%;
     /* padding-top: 20%; */

@@ -10,6 +10,7 @@ pub struct SingleCardTemplate {
     pub id: i32,
     pub cardclass: String,
     pub cardclass_long: String,
+    pub initiative: i32,
     pub action: String,
     pub speed: String,
     pub name: String,
@@ -26,6 +27,7 @@ impl SingleCardTemplate {
             cardclass: (&card.cardclass).to_string(),
             cardclass_long: TRAIT_SHORT_TO_FULLNAME.get(&card.cardclass)
                     .unwrap().to_string(),
+            initiative: card.initiative,
             action: card.action.clone(),
             speed: card.speed.clone(),
             name: card.name.clone(),

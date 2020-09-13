@@ -10,7 +10,7 @@
     </tr>
     <tr>
     {%- endif -%}
-        <td>{% call macrocard::render_card(card.id, card.cardclass, card.cardclass_long, card.name, card.speed, card.action, card.desc, card.image_url) %}</td>
+        <td>{% call macrocard::render_card(card.id, card.cardclass, card.cardclass_long, card.initiative, card.name, card.speed, card.action, card.desc, card.image_url) %}</td>
     {%- endfor -%}
     </tr>
 </table>

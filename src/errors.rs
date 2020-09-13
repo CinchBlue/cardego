@@ -11,8 +11,6 @@ pub enum ServerError {
     ConfigurationError,
     #[error("DatabaseConnectionError: Could not conenct to database")]
     DatabaseConnectionError,
-    #[error("CairoError: An image error occured with Cairo: {0}")]
-    CairoError(cairo::BorrowError),
     #[error("FileIOError: file: {0}")]
     FileIOError(String),
     

@@ -4,6 +4,7 @@ table! {
         cardclass -> Text,
         action -> Text,
         speed -> Text,
+        initiative -> Integer,
         name -> Text,
         desc -> Text,
         image_url -> Nullable<Text>,

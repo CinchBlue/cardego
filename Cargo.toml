@@ -1,6 +1,6 @@
 [package]
 name = "cardego-server"
-version = "0.5.0"
+version = "0.7.0"
 authors = ["Austin Tasato <aytasato@gmail.com>"]
 edition = "2018"
 build = 'build.rs'
@@ -12,6 +12,7 @@ log = "0.4.8"
 actix = "0"
 actix-web = "2"
 actix-rt = "1"
+actix-files = "0.3.0"
 log4rs = { version = "0.11.0", features = ["rolling_file_appender", "compound_policy", "size_trigger", "fixed_window_roller"]}
 diesel = { version = "1.4.4", features = ["sqlite"]}
 serde = {version = "1.0.106", features = ["derive"]}
@@ -19,15 +20,13 @@ serde_json = "1.0.52"
 anyhow = "1.0.28"
 thiserror = "1.0"
 derive_more = "0.99.5"
-cairo-rs = {version = "0.9.1", features=["png"]}
 png = "0.16.7"
-pango = "0.9.0"
-pangocairo = "0.10.0"
 reqwest = "0.10.6"
 
-futures = "=0.3.2"
-futures-util = "=0.3.2"
-futures-macro = "=0.3.2"
+
+futures = "0.3.5"
+futures-util = "0.3.5"
+futures-macro = "0.3.5"
 
 regex = "1"
 lazy_static = "1"

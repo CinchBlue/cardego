@@ -14,6 +14,7 @@ pub struct Card {
     pub cardclass: String,
     pub action: String,
     pub speed: String,
+    pub initiative: i32,
     pub name: String,
     pub desc: String,
     pub image_url: Option<String>,
@@ -27,6 +28,7 @@ pub struct NewCard<'a> {
     pub cardclass: &'a str,
     pub action: &'a str,
     pub speed: &'a str,
+    pub initiative: i32,
     pub name: &'a str,
     pub desc: &'a str,
     pub image_url: Option<String>,
@@ -79,7 +81,7 @@ lazy_static! {
         let mut m = HashMap::new();
         m.insert("Kn".to_string(), "Knowledge");
         m.insert("Tr".to_string(), "Trait");
-        m.insert("It".to_string(), "Equipment");
+        m.insert("It".to_string(), "Item");
         m.insert("Eq".to_string(), "Equipment");
         m.insert("Ar".to_string(), "Armor");
         m.insert("Co".to_string(), "Consumable");
