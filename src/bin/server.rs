@@ -59,7 +59,7 @@ async fn route_get_card_image_as_html(
     // We currently use PNG as our format.
     Ok(
         HttpResponse::Ok()
-                .content_type("text/html")
+                .content_type("text/html; charset=UTF-8")
                 .body(out_html_string)
     )
 }
@@ -69,7 +69,7 @@ async fn route_get_card_image_css()
     let file = std::fs::read("static/templates/card.css")?;
     Ok(
         HttpResponse::Ok()
-                .content_type("text/css")
+                .content_type("text/css; charset=UTF-8")
                 .body(file)
     )
 }
