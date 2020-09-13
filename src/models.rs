@@ -79,6 +79,7 @@ lazy_static! {
         let mut m = HashMap::new();
         m.insert("Kn".to_string(), "Knowledge");
         m.insert("Tr".to_string(), "Trait");
+        m.insert("It".to_string(), "Equipment");
         m.insert("Eq".to_string(), "Equipment");
         m.insert("Ar".to_string(), "Armor");
         m.insert("Co".to_string(), "Consumable");

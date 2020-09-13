@@ -19,15 +19,11 @@ use log::{debug, warn, info};
 
 use std::fs::{File};
 use std::io::{Write};
-use std::convert::TryInto;
 
 pub const CARD_FRONT_FILE_PATH: &str =
     "static/templates/card_front.png";
 pub const CARD_BACK_FILE_PATH: &str =
     "static/templates/card_back.png";
-
-pub const CARD_TEMPLATE_HTML_FILE_PATH: &str =
-    "static/templates/card.html";
 
 /// Returns the path of the image it generated.
 pub fn generate_card_image(
@@ -40,8 +36,6 @@ pub fn generate_card_image(
     let substituted_template = SingleCardTemplate::new(card_info).render()?;
     
     debug!("substituted into template: {:?}", substituted_template);
-    
-    info!("card template file path: {:?}", CARD_TEMPLATE_HTML_FILE_PATH);
     info!("expected image path: {:?}", expected_image_path);
     
     // Write the substituted HTML into a file
@@ -54,7 +48,7 @@ pub fn generate_card_image(
     
     // Spawn off a sub-process for wkhtmltoimage to convert the image.
     generate_image_using_wkhtmltoimage(
-        1050, 750, &substituted_html_path, &expected_image_path)?;
+        420, 300, &substituted_html_path, &expected_image_path)?;
     
     // Once the image is generated, return the path to it.
     Ok(expected_image_path.to_string())
@@ -87,8 +81,10 @@ pub fn generate_deck_cardsheet_image(
     
     // Spawn off a sub-process for wkhtmltoimage to convert the image.
     generate_image_using_wkhtmltoimage(
-        1050*6,
-        750*std::cmp::max(1, (number_of_cards % 6).try_into().unwrap()),
+        420*std::cmp::max(
+            2,
+            number_of_cards/10 + ((number_of_cards % 10 > 0) as usize)),
+        300*10,
         &substituted_html_path,
         &expected_image_path)?;
     
@@ -98,8 +94,8 @@ pub fn generate_deck_cardsheet_image(
 
 
 pub fn generate_image_using_wkhtmltoimage(
-    height: u32,
-    width: u32,
+    height: usize,
+    width: usize,
     substituted_html_path: &str,
     output_path: &str)
     -> Result<()> {

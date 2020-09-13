@@ -4,50 +4,70 @@ body {
     background-color: #C6C6C6;
 }
 
+table {
+    margin: 0px;
+}
+
+td {
+    max-height: 100%;
+    margin: 0px;
+    padding: 0px;
+}
+
+tr {
+    max-width: 100%;
+    margin: 0px;
+}
+
 .table {
     display: table;
     width: 100%;
+    height: 100%;
 }
 
 .background {
-    width: 750px;
-    height: 1050px;
+    width: 300px;
+    height: 420px;
 
-    padding: 10px;
+    /* padding: 10vw; */
     background-color: #C6C6C6;
 }
 
 .header {
     display: block;
-    height: 165px;
+    height: 16%;
 
-    padding: 10px;
-    
+    padding: 2%;
+
     background-color: #F9F9F9;
     
-    border-radius: 25px;
-
+    border-radius: 1vw;
 }
 
 .title-section {
     display: table-cell;
-    width: 75%;
-    height: 100%;
     text-align: center;
     vertical-align: middle;
+    width: 100%;
+    max-width: 100%;
 }
 
 .cardclass-circle {
-    width: 140px;
-    height: 140px;
+    width: 100%;
+    height: 80%;
     border-radius: 100%;
-    border: 10px solid #C6C6C6;
+    border: 0.2vw solid #C6C6C6;
+    margin-top: 10%;
+    margin-bottom: 10%;
+    /* padding-top: 20%; */
 }
 
 .cardclass-section {
     display: table;
-    width: 100%;
     height: 100%;
+    width: 100%;
+    /*! transform: translateX(50%) translateY(50%); */
+    text-align: center;
 }
 
 .cardclass-text {
@@ -67,37 +87,35 @@ body {
 
 
 .card-image {
-    height: 400px;
+    height: 38%;
 
-    margin-top: 10px;
-    padding: 10px;
+
+    padding: 3%;
     
     /* background-color: #F9F9F9; */
-    
-    border-radius: 25px;
 
     text-align: center;
 }
 
 
 .card-body {
-    height: 385px;
+    height: 37%;
     background-color: #F5F3E6;
-    border-radius: 25px;
-    border: 10px solid #DDD9A1;
+    border-radius: 0vw;
+    border: 0vw solid #DDD9A1;
 
-    margin-top: 10px;
-    padding: 10px;
-    margin-bottom: 10px;
+    margin-top: 0.5vw;
+    padding: 0.5vw;
+    margin-bottom: 0.5vw;
 }
 
 .card-stats {
     display: table;
     text-align: center;
-    margin-top: 0px;
-    height: 40px;
+    margin-top: 0vw;
+    height: 5%;
     width: 95%;
-    border-radius: 25px;
+    border-radius: 0.5vw;
     background-color: #F9F9F9;
 
     margin-left: auto;
@@ -111,7 +129,7 @@ body {
 }
 
 .card-description {
-    padding: 30px;
+    padding: 5%;
 }
 
 
@@ -121,7 +139,7 @@ body {
 
 
 .humongous-text {
-    font-size: 90px;
+    font-size: 4em;
 }
 
 .sans-serif {
@@ -129,30 +147,30 @@ body {
 }
 
 .giant-text {
-    font-size: 72px;
+    font-size: 3em;
     /* 12 w's */
 }
 
 .large-text {
-    font-size: 48px;
+    font-size: 2em;
     /* 30 W's */
 }
 
 .big-text {
-    font-size: 36px;
+    font-size: 1.5em;
 }
 
 .medium-text {
-    font-size: 24px;
+    font-size: 1em;
     /* 120 W's */
 }
 
 .small-text {
-    font-size: 16px;
+    font-size: 0.8em;
 }
 
 .tiny-text {
-    font-size: 12px;
+    font-size: 0.5em;
 }
 
 .cardclass-background-color-Po {

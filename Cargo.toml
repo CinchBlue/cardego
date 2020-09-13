@@ -38,8 +38,3 @@ askama = "0.10.3"
 name = "server"
 test = false
 bench = false
-
-[[bin]]
-name = "sandbox"
-test = false
-bench = false
