@@ -48,18 +48,22 @@ tr {
     display: table-cell;
     text-align: center;
     vertical-align: middle;
-    width: 100%;
-    max-width: 100%;
+    width: 60%;
+    max-width: 60%;
 }
 
 .cardclass-circle {
-    width: 50px;
-    height: 80%;
+    width: 20%;
     border-radius: 100%;
-    border: 0.5vw solid #C6C6C6;
-    margin-top: 10%;
-    margin-bottom: 10%;
-    /* padding-top: 20%; */
+    border: 1px solid #C6C6C6;
+    display: table-cell;
+}
+
+.initiative-circle {
+    width: 20%;
+    border-radius: 100%;
+    border: 1px solid #C6C6C6;
+    display: table-cell;
 }
 
 .cardclass-section {
