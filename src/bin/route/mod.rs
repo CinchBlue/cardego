@@ -13,6 +13,8 @@ use log::{info, debug};
 
 use std::sync::{Arc, Mutex};
 use std::fs::{File};
+use cardego_server::models::{CardAttribute, FullCardData};
+use reqwest::StatusCode;
 
 pub struct ServerState {
     db: CardDatabase,
@@ -31,7 +33,20 @@ pub async fn route_get_card(
     let card = state.db.get_card(path.0)
             .or(Err(ClientError::ResourceNotFound))?;
     
-    Ok(HttpResponse::Ok().json(card))
+    let card_attributes = state.db.get_card_attributes_by_card_id(path.0)
+            .or(Err(ClientError::ResourceNotFound))?;
+    
+    Ok(HttpResponse::Ok().json(FullCardData {
+        id: card.id,
+        cardclass: card.cardclass,
+        action: card.action,
+        speed: card.speed,
+        initiative: card.initiative,
+        name: card.name,
+        desc: card.desc,
+        image_url: card.image_url,
+        card_attributes,
+    }))
 }
 
 pub async fn route_get_card_image_as_html(
@@ -108,6 +123,19 @@ pub async fn route_get_card_image_by_html(
                 .content_length(length)
                 .body(buffer)
     )
+}
+
+pub async fn route_put_card(
+    path: web::Path<i32>,
+    card: web::Json<cardego_server::models::Card>)
+    -> Result<HttpResponse> {
+
+    let db = init_state()?;
+    let mut state = db.lock().or(Err(ServerError::DatabaseConnectionError))?;
+    
+    state.db.put_card(&card)?;
+    
+    Ok(HttpResponse::Created().finish())
 }
 
 
@@ -218,3 +246,4 @@ pub fn init_state() -> anyhow::Result<Arc<Mutex<ServerState>>> {
         }
     )))
 }
+

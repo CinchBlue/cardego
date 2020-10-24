@@ -26,3 +26,19 @@ table! {
         card_id -> Integer,
     }
 }
+
+table! {
+    card_attributes (id) {
+        id -> Integer,
+        name -> Text,
+        order -> Integer,
+    }
+}
+
+table! {
+    cards_card_attributes_relation (id) {
+        id -> Integer,
+        card_id -> Integer,
+        card_attribute_id -> Integer,
+    }
+}

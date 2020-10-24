@@ -7,8 +7,6 @@ use actix_web::http::{StatusCode};
 
 #[derive(thiserror::Error, Debug)]
 pub enum ServerError {
-    #[error("ConfigurationError: Server configuration is invalid")]
-    ConfigurationError,
     #[error("DatabaseConnectionError: Could not conenct to database")]
     DatabaseConnectionError,
     #[error("FileIOError: file: {0}")]
@@ -49,8 +47,6 @@ impl From<anyhow::Error> for AppError {
         AppError::Server(ServerError::OtherError(err))
     }
 }
-
-
 
 
 impl From<AppError> for std::io::Error {

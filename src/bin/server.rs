@@ -35,8 +35,7 @@ async fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
    
     // Initialize all server + dependency config
-    init_config()
-            .or(Err(ServerError::ConfigurationError))?;
+    init_config()?;
    
     // Create the HTTP server with routing below and initialize it.
     info!("Initializing server framework");
@@ -45,13 +44,14 @@ async fn main() -> Result<()> {
         
         App::new()
                 .wrap(middleware::DefaultHeaders::new()
-                        .header("X-API-Version", "alpha-5"))
+                        .header("X-API-Version", "alpha-9"))
                 // ALWAYS have compression on! This is a major performance
                 // boost for amount of bytes per image get!
                 .wrap(middleware::Compress::default())
         .route("/", web::get().to(index))
                 .service(web::scope("/cards")
                         .route("/{id}", web::get().to(route_get_card))
+                        .route("/{id}", web::put().to(route_put_card))
                         .route("/{id}/image.png",
                             web::get().to(route_get_card_image_by_html))
                         .route("/{id}/image.html",

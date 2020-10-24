@@ -25,10 +25,16 @@ appenders:
         base: 1
         count: 10
         pattern: "logs/application.{}.log"
-
 # Set the default logging level and attach appenders to the root.
 root:
-  level: debug
+  level: info
   appenders:
     - application
     - console
+# Here, we can set custom thresholds for loggers:
+loggers:
+  actix_web:
+    level: trace
+  actix_server:
+    level: trace
+
