@@ -46,18 +46,34 @@ impl CardDatabase {
         Ok(result)
     }
     
-    pub fn put_card(&mut self, card: &Card) -> Result<Card> {
-        debug!("put_card: {:?}", card);
+    // TODO: memory management on this needs to be optimized; currently just
+    // clone()-ing things like a madman.
+    pub fn create_card(&mut self, card_data: &FullCardData)
+        -> Result<FullCardData> {
+        debug!("create_card: {:?}", card_data);
         
         use schema::cards;
         use schema::card_attributes;
         use schema::cards_card_attributes_relation;
         
+        let card = NewCard {
+            cardclass: &card_data.cardclass,
+            action: &card_data.action,
+            speed: &card_data.speed,
+            initiative: card_data.initiative,
+            name: &card_data.name,
+            desc: &card_data.desc,
+            image_url: card_data.image_url.as_ref().map(|s| s.as_str()),
+        };
+        
         diesel::replace_into(cards::table)
-                .values(card)
+                .values(&card)
                 .execute(self.connection.as_mut())?;
         
-        // Get the id of the card
+        // Get the id of the card by querying for the name.
+        //
+        // TODO: This is very bad and needed to be made deterministic. Cards
+        // with duplicate names will destroy this.
         let card_name = &card.name;
         let new_card_result = self.query_cards_by_name_formatted(card_name)?;
        
@@ -70,16 +86,126 @@ impl CardDatabase {
                 insert/replace into SQLite database.", &card.name)))?;
         let last_id = new_card.id;
         
+        debug!("Created card with id {}", last_id);
         
+        // Insert attributes into the attribute table
+        let new_card_attribute_relations: Option<Vec<NewCardCardAttributeRelation>>
+                = card_data.card_attributes.as_ref()
+                .map(|v| v.iter()
+                        .map(|attr| NewCardCardAttributeRelation {
+                            card_id: last_id,
+                            card_attribute_id: attr.id})
+                        .collect());
         
-        debug!("Put card with id {}", last_id);
-        
-        
-        debug!("put_card succeeded");
-        Ok(new_card.clone())
+        match new_card_attribute_relations {
+            Some(ref v) => {
+                diesel::replace_into(cards_card_attributes_relation::table)
+                    .values(v)
+                    .execute(self.connection.as_mut())?;
+            
+                debug!("Created card_attributes with ids {:?}",
+                    new_card_attribute_relations);
+            },
+            None => {
+                debug!("No card attributes to be written; skipping");
+            }
+        };
+    
+        debug!("create_card succeeded");
+        Ok(FullCardData {
+            id: last_id,
+            card_attributes: card_data.card_attributes.clone(),
+            cardclass: card_data.cardclass.clone(),
+            action: card_data.action.clone(),
+            speed: card_data.speed.clone(),
+            initiative: card_data.initiative,
+            name: card_data.name.clone(),
+            desc: card_data.desc.clone(),
+            image_url: card_data.image_url.clone(),
+        })
     }
     
-    pub fn put_deck(&mut self, name: String, ids: Vec<i32>) -> Result<Deck> {
+    // TODO: memory management on this needs to be optimized; currently just
+    // clone()-ing things like a madman.
+    pub fn update_card(&mut self, card_data: FullCardData)
+        -> Result<FullCardData> {
+        debug!("update_card: {:?}", card_data);
+        
+        use schema::cards;
+        use schema::card_attributes;
+        use schema::cards_card_attributes_relation;
+        
+        let card = Card {
+            id: card_data.id,
+            cardclass: card_data.cardclass,
+            action: card_data.action,
+            speed: card_data.speed,
+            initiative: card_data.initiative,
+            name: card_data.name,
+            desc: card_data.desc,
+            image_url: card_data.image_url,
+        };
+        
+        diesel::replace_into(cards::table)
+                .values(&card)
+                .execute(self.connection.as_mut())?;
+        
+        // Get the id of the card by querying for the name.
+        //
+        // TODO: This is very bad and needed to be made deterministic. Cards
+        // with duplicate names will destroy this.
+        let card_name = &card.name;
+        let new_card_result = self.query_cards_by_name_formatted(card_name)?;
+        
+        let new_card = new_card_result
+                .first()
+                .into_iter()
+                .nth(0)
+                .ok_or(ServerError::OtherError(anyhow!(
+                "Could not find expected card name '{}' after successful \
+                insert/replace into SQLite database.", &card.name)))?;
+        let last_id = new_card.id;
+        
+        debug!("Updated card with id {}", last_id);
+        
+        // Insert attributes into the attribute table
+        let new_card_attribute_relations: Option<Vec<NewCardCardAttributeRelation>>
+                = card_data.card_attributes.as_ref()
+                .map(|v| v.iter()
+                        .map(|attr| NewCardCardAttributeRelation {
+                            card_id: last_id,
+                            card_attribute_id: attr.id})
+                        .collect());
+        
+        match new_card_attribute_relations {
+            Some(ref v) => {
+                diesel::replace_into(cards_card_attributes_relation::table)
+                        .values(v)
+                        .execute(self.connection.as_mut())?;
+                
+                debug!("Updated card_attributes with ids {:?}",
+                    new_card_attribute_relations);
+            },
+            None => {
+                debug!("No card attributes to be written; skipping");
+            }
+        };
+        
+        debug!("update_card succeeded");
+        Ok(FullCardData {
+            id: last_id,
+            card_attributes: card_data.card_attributes.clone(),
+            cardclass: card.cardclass,
+            action: card.action,
+            speed: card.speed,
+            initiative: card.initiative,
+            name: card.name,
+            desc: card.desc,
+            image_url: card.image_url,
+        })
+    }
+    
+    pub fn create_deck(&mut self, name: String, ids: Vec<i32>) -> Result<Deck> {
         debug!("put_deck: {} {:?}", name, ids);
     
         use schema::decks;

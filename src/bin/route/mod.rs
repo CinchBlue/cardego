@@ -8,7 +8,7 @@ extern crate actix_files;
 use cardego_server::{CardDatabase};
 use cardego_server::errors::{Result, ServerError, ClientError, AppError};
 
-use actix_web::{web, Responder, HttpResponse};
+use actix_web::{web, Responder, HttpResponse, HttpRequest};
 use log::{info, debug};
 
 use std::sync::{Arc, Mutex};
@@ -34,7 +34,8 @@ pub async fn route_get_card(
             .or(Err(ClientError::ResourceNotFound))?;
     
     let card_attributes = state.db.get_card_attributes_by_card_id(path.0)
-            .or(Err(ClientError::ResourceNotFound))?;
+            .map(|v| Some(v))
+            .unwrap_or(None);
     
     Ok(HttpResponse::Ok().json(FullCardData {
         id: card.id,
@@ -125,17 +126,37 @@ pub async fn route_get_card_image_by_html(
     )
 }
 
-pub async fn route_put_card(
-    path: web::Path<i32>,
-    card: web::Json<cardego_server::models::Card>)
+pub async fn route_create_card(
+    req: HttpRequest,
+    card: web::Json<FullCardData>)
     -> Result<HttpResponse> {
 
     let db = init_state()?;
     let mut state = db.lock().or(Err(ServerError::DatabaseConnectionError))?;
     
-    state.db.put_card(&card)?;
+    let full_card_data: FullCardData = state.db.create_card(&card)?;
+   
+    Ok(HttpResponse::Created()
+            .header("Location", format!("{}/{}",
+                req.path(), full_card_data.id))
+            .finish())
+}
+
+pub async fn route_update_card(
+    req: HttpRequest,
+    path: web::Path<(i32)>,
+    card: web::Json<FullCardData>)
+    -> Result<HttpResponse> {
     
-    Ok(HttpResponse::Created().finish())
+    let db = init_state()?;
+    let mut state = db.lock().or(Err(ServerError::DatabaseConnectionError))?;
+    
+    let mut card: FullCardData = card.into_inner();
+    card.id = *path;
+    
+    let full_card_data: FullCardData = state.db.update_card(card)?;
+    
+    Ok(HttpResponse::Ok().finish())
 }
 
 
@@ -152,7 +173,7 @@ pub async fn route_get_deck(
     Ok(HttpResponse::Ok().json(cards))
 }
 
-pub async fn route_put_deck(
+pub async fn route_create_deck(
     path: web::Path<String>,
     body: String)
     -> Result<HttpResponse> {
@@ -173,7 +194,7 @@ pub async fn route_put_deck(
     let db = init_state()?;
     let mut state = db.lock().or(Err(ServerError::DatabaseConnectionError))?;
     
-    let new_deck = state.db.put_deck(path.to_string(), card_ids)?;
+    let new_deck = state.db.create_deck(path.to_string(), card_ids)?;
     
     Ok(HttpResponse::Ok().json(new_deck))
 }

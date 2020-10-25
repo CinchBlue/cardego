@@ -35,11 +35,11 @@ pub struct NewCard<'a> {
     pub initiative: i32,
     pub name: &'a str,
     pub desc: &'a str,
-    pub image_url: Option<String>,
+    pub image_url: Option<&'a str>,
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[derive(Serialize, Deserialize)]
 #[derive(Identifiable, Queryable)]
 #[derive(Insertable)]
@@ -61,7 +61,7 @@ pub struct NewDeck<'a> {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[derive(Serialize, Deserialize)]
 #[derive(Queryable)]
 pub struct DeckCardRelation {
@@ -81,7 +81,7 @@ pub struct NewDeckCardRelation {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[derive(Serialize, Deserialize)]
 #[derive(Identifiable, Queryable)]
 pub struct CardAttribute {
@@ -101,7 +101,7 @@ pub struct NewCardAttribute<'a> {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[derive(Serialize, Deserialize)]
 #[derive(Identifiable, Queryable)]
 #[table_name = "cards_card_attributes_relation"]
@@ -122,7 +122,7 @@ pub struct NewCardCardAttributeRelation {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[derive(Serialize, Deserialize)]
 pub struct FullCardData {
     pub id: i32,
@@ -133,7 +133,7 @@ pub struct FullCardData {
     pub name: String,
     pub desc: String,
     pub image_url: Option<String>,
-    pub card_attributes: Vec<CardAttribute>,
+    pub card_attributes: Option<Vec<CardAttribute>>,
 }
 
 

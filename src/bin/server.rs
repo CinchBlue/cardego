@@ -51,7 +51,8 @@ async fn main() -> Result<()> {
         .route("/", web::get().to(index))
                 .service(web::scope("/cards")
                         .route("/{id}", web::get().to(route_get_card))
-                        .route("/{id}", web::put().to(route_put_card))
+                        .route("/{id}", web::put().to(route_update_card))
+                        .route("", web::post().to(route_create_card))
                         .route("/{id}/image.png",
                             web::get().to(route_get_card_image_by_html))
                         .route("/{id}/image.html",
@@ -60,7 +61,7 @@ async fn main() -> Result<()> {
                             web::get().to(route_get_card_image_css)))
         .service(web::scope("/decks")
                         .route("/{name}", web::get().to(route_get_deck))
-                        .route("/{name}", web::put().to(route_put_deck))
+                        .route("/{name}", web::post().to(route_create_deck))
                         .route("/{name}/image.png",
                             web::get().to (route_get_deck_cardsheet)))
                 .service(web::scope("/search")
