@@ -8,22 +8,36 @@ build = 'build.rs'
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# log4rs for logging like log4j because I'm used to it
 log = "0.4.8"
+log4rs = { version = "0.11.0", features = ["rolling_file_appender", "compound_policy", "size_trigger", "fixed_window_roller"]}
+
+# actix-web for HTTP server framework
 actix = "0"
 actix-web = "2"
 actix-rt = "1"
 actix-files = "0.3.0"
-log4rs = { version = "0.11.0", features = ["rolling_file_appender", "compound_policy", "size_trigger", "fixed_window_roller"]}
-diesel = { version = "1.4.4", features = ["sqlite"]}
+
+# Diesel for SQLite3 access
+diesel = { version = "1.4.5", features = ["sqlite"]}
+
+# serde for IO serialization
 serde = {version = "1.0.106", features = ["derive"]}
 serde_json = "1.0.52"
+
+derive_more = "0.99.5"
+
+# anyhow and thiserror for errors
 anyhow = "1.0.28"
 thiserror = "1.0"
-derive_more = "0.99.5"
+
+# png for saving and serving image files for cards
 png = "0.16.7"
+
+# reqwest for getting images/content from image URLs
 reqwest = "0.10.6"
 
-
+# futures support for actix-web, etc.
 futures = "0.3.5"
 futures-util = "0.3.5"
 futures-macro = "0.3.5"
@@ -31,7 +45,15 @@ futures-macro = "0.3.5"
 regex = "1"
 lazy_static = "1"
 
+# Askama for HTML templating
 askama = "0.10.3"
+
+# Juniper for implemetning our GraphQL API
+juniper = "0.14.2"
+
+# Nom for search query syntax context-free parsing
+nom = "5"
+
 
 [[bin]]
 name = "server"

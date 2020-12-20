@@ -1,5 +1,6 @@
 extern crate diesel;
 extern crate askama;
+extern crate juniper;
 
 use super::schema::*;
 use serde::{Deserialize, Serialize};
@@ -11,6 +12,7 @@ use std::collections::HashMap;
 // separate table as per usual data schema normalization.
 #[derive(Debug, Clone)]
 #[derive(Serialize, Deserialize)]
+#[derive(juniper::GraphQLObject)]
 #[derive(Identifiable, Queryable, Insertable)]
 #[table_name = "cards"]
 pub struct Card {
@@ -41,6 +43,7 @@ pub struct NewCard<'a> {
 
 #[derive(Debug, Clone)]
 #[derive(Serialize, Deserialize)]
+#[derive(juniper::GraphQLObject)]
 #[derive(Identifiable, Queryable)]
 #[derive(Insertable)]
 #[table_name = "decks"]
@@ -63,6 +66,7 @@ pub struct NewDeck<'a> {
 
 #[derive(Debug, Clone)]
 #[derive(Serialize, Deserialize)]
+#[derive(juniper::GraphQLObject)]
 #[derive(Queryable)]
 pub struct DeckCardRelation {
     pub id: i32,
@@ -83,6 +87,7 @@ pub struct NewDeckCardRelation {
 
 #[derive(Debug, Clone)]
 #[derive(Serialize, Deserialize)]
+#[derive(juniper::GraphQLObject)]
 #[derive(Identifiable, Queryable)]
 pub struct CardAttribute {
     pub id: i32,
@@ -103,6 +108,7 @@ pub struct NewCardAttribute<'a> {
 
 #[derive(Debug, Clone)]
 #[derive(Serialize, Deserialize)]
+#[derive(juniper::GraphQLObject)]
 #[derive(Identifiable, Queryable)]
 #[table_name = "cards_card_attributes_relation"]
 pub struct CardCardAttributeRelation {
@@ -124,6 +130,7 @@ pub struct NewCardCardAttributeRelation {
 
 #[derive(Debug, Clone)]
 #[derive(Serialize, Deserialize)]
+#[derive(juniper::GraphQLObject)]
 pub struct FullCardData {
     pub id: i32,
     pub cardclass: String,
@@ -136,6 +143,19 @@ pub struct FullCardData {
     pub card_attributes: Option<Vec<CardAttribute>>,
 }
 
+#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize)]
+#[derive(juniper::GraphQLInputObject)]
+pub struct NewFullCardData {
+    pub cardclass: String,
+    pub action: String,
+    pub speed: String,
+    pub initiative: i32,
+    pub name: String,
+    pub desc: String,
+    pub image_url: Option<String>,
+    pub card_attributes: Option<Vec<i32>>,
+}
 
 lazy_static! {
     pub static ref TRAIT_SHORT_TO_FULLNAME: HashMap<String, &'static str> = {
@@ -165,8 +185,8 @@ mod tests {
     #[test]
     fn given_card_json_string_when_serialize_then_successful() {
         let json_string = r#"{"id":1337,"cardclass":"1H","action":"Attack","speed":"Normal","initiative":3,"name":"Lmao","desc":"Range 1. Lmao.","image_url":null}"#;
-        let json_value: Value = serde_json::from_str(json_string).unwrap();
-        let json_card_value: Card = serde_json::from_str(json_string).unwrap();
+        let _json_value: Value = serde_json::from_str(json_string).unwrap();
+        let _json_card_value: Card = serde_json::from_str(json_string).unwrap();
     }
 }
 

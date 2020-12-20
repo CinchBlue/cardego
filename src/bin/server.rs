@@ -7,11 +7,14 @@ extern crate actix_files;
 
 pub mod route;
 
-use cardego_server::errors::{Result, ServerError};
+use cardego_server::errors::{Result};
 
 use actix_web::{web, App, HttpServer, middleware};
 use log::{info};
 
+use std::sync::{Mutex, Arc};
+use cardego_server::search::create_schema;
+use cardego_server::{ServerState, ApplicationConfig};
 
 fn init_config() -> anyhow::Result<()>  {
     log4rs::init_file("config/log4rs/log4rs.yml", Default::default())?;
@@ -36,19 +39,26 @@ async fn main() -> Result<()> {
    
     // Initialize all server + dependency config
     init_config()?;
+    
+    // Create the shared application state
+    let state = Arc::new(Mutex::new(ServerState {
+        config: ApplicationConfig::new()?,
+        schema: create_schema(),
+    }));
    
     // Create the HTTP server with routing below and initialize it.
     info!("Initializing server framework");
-    let result = HttpServer::new(|| {
+    let result = HttpServer::new(move || {
         use crate::route::*;
-        
+    
         App::new()
+                .data(state.clone())
                 .wrap(middleware::DefaultHeaders::new()
                         .header("X-API-Version", "alpha-9"))
                 // ALWAYS have compression on! This is a major performance
                 // boost for amount of bytes per image get!
                 .wrap(middleware::Compress::default())
-        .route("/", web::get().to(index))
+                .route("/", web::get().to(index))
                 .service(web::scope("/cards")
                         .route("/{id}", web::get().to(route_get_card))
                         .route("/{id}", web::put().to(route_update_card))
@@ -59,14 +69,18 @@ async fn main() -> Result<()> {
                             web::get().to(route_get_card_image_as_html))
                         .route("/{id}/card.css",
                             web::get().to(route_get_card_image_css)))
-        .service(web::scope("/decks")
+                .service(web::scope("/decks")
                         .route("/{name}", web::get().to(route_get_deck))
                         .route("/{name}", web::post().to(route_create_deck))
                         .route("/{name}/image.png",
                             web::get().to (route_get_deck_cardsheet)))
                 .service(web::scope("/search")
-                    .route("/decks/{name}", web::get().to(route_query_decks))
-                    .route("/cards/{name}", web::get().to(route_query_cards)))
+                        .route("/decks/{name}", web::get().to(route_query_decks))
+                        .route("/cards/{name}", web::get().to(route_query_cards)))
+                .service(web::scope("/graphql")
+                        .route("", web::get().to(crate::route::graphql))
+                        .route("", web::post().to(crate::route::graphql)))
+                .route("/graphiql", web::get().to(crate::route::graphql_playground))
     })
             // Local testing? Use localhost:80 for HTTP
             .bind(&args[1])?

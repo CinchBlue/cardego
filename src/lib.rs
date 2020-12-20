@@ -7,30 +7,42 @@ pub mod models;
 pub mod schema;
 pub mod errors;
 pub mod image;
+pub mod search;
+pub mod database;
+pub mod api_syntax;
 
 use diesel::prelude::*;
-use diesel::{SqliteConnection};
 
 use anyhow::{Result, anyhow};
 use log::{debug};
 
 use self::models::*;
 use self::errors::*;
+use self::database::DatabaseContext;
 
 use std::error::{Error};
 
-pub struct CardDatabase {
-    connection: Box<SqliteConnection>,
+pub struct ServerState {
+    pub config: ApplicationConfig,
+    pub schema: crate::search::Schema,
 }
 
-impl CardDatabase {
-    pub fn new(url: &str)
-        -> Result<CardDatabase> {
-        
-        let connection = SqliteConnection::establish(&url)?;
-        
-        Ok(CardDatabase { connection: Box::new(connection) })
+pub struct ApplicationConfig {
+    pub database_endpoint: String,
+}
+
+impl ApplicationConfig {
+    pub fn new() -> anyhow::Result<Self> {
+        debug!("Initializing ApplicationConfig");
+
+        Ok(Self {
+            database_endpoint: String::from("runtime/data/databases/cards.db")
+        })
     }
+}
+
+
+impl DatabaseContext {
     
     pub fn get_card(&self, card_id: i32) -> Result<Card> {
         use self::schema::cards::dsl::*;
@@ -46,14 +58,33 @@ impl CardDatabase {
         Ok(result)
     }
     
+    pub fn get_full_card_data(&self, card_id: i32) -> Result<FullCardData> {
+        let card = self.get_card(card_id)?;
+    
+        let card_attributes = self.get_card_attributes_by_card_id(card_id)
+                .map(|v| Some(v))
+                .unwrap_or(None);
+    
+        Ok(FullCardData {
+            id: card.id,
+            cardclass: card.cardclass,
+            action: card.action,
+            speed: card.speed,
+            initiative: card.initiative,
+            name: card.name,
+            desc: card.desc,
+            image_url: card.image_url,
+            card_attributes,
+        })
+    }
+    
     // TODO: memory management on this needs to be optimized; currently just
     // clone()-ing things like a madman.
-    pub fn create_card(&mut self, card_data: &FullCardData)
+    pub fn create_card(&mut self, card_data: &NewFullCardData)
         -> Result<FullCardData> {
         debug!("create_card: {:?}", card_data);
         
         use schema::cards;
-        use schema::card_attributes;
         use schema::cards_card_attributes_relation;
         
         let card = NewCard {
@@ -94,12 +125,12 @@ impl CardDatabase {
                 .map(|v| v.iter()
                         .map(|attr| NewCardCardAttributeRelation {
                             card_id: last_id,
-                            card_attribute_id: attr.id})
+                            card_attribute_id: *attr})
                         .collect());
         
         match new_card_attribute_relations {
             Some(ref v) => {
-                diesel::replace_into(cards_card_attributes_relation::table)
+                diesel::insert_into(cards_card_attributes_relation::table)
                     .values(v)
                     .execute(self.connection.as_mut())?;
             
@@ -110,11 +141,16 @@ impl CardDatabase {
                 debug!("No card attributes to be written; skipping");
             }
         };
+        
+        // Get the associated attributes out again
+        let card_attributes = self.get_card_attributes_by_card_id(last_id)
+                .map(|v| Some(v))
+                .unwrap_or(None);
     
         debug!("create_card succeeded");
         Ok(FullCardData {
             id: last_id,
-            card_attributes: card_data.card_attributes.clone(),
+            card_attributes: card_attributes,
             cardclass: card_data.cardclass.clone(),
             action: card_data.action.clone(),
             speed: card_data.speed.clone(),
@@ -132,7 +168,6 @@ impl CardDatabase {
         debug!("update_card: {:?}", card_data);
         
         use schema::cards;
-        use schema::card_attributes;
         use schema::cards_card_attributes_relation;
         
         let card = Card {

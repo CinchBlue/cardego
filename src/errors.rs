@@ -4,6 +4,9 @@ extern crate derive_more;
 
 use std::convert::{From};
 use actix_web::http::{StatusCode};
+use anyhow::anyhow;
+
+pub type Result<T> = std::result::Result<T, crate::AppError>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum ServerError {
@@ -36,6 +39,7 @@ pub enum AppError {
 }
 
 
+
 impl From<std::io::Error> for AppError {
     fn from(err: std::io::Error) -> Self {
         AppError::Server(ServerError::IOError(err))
@@ -57,7 +61,6 @@ impl From<AppError> for std::io::Error {
         )
     }
 }
-
 
 
 impl From<ServerError> for crate::AppError {
@@ -104,4 +107,16 @@ impl actix_web::ResponseError for AppError {
     }
 }
 
-pub type Result<T> = std::result::Result<T, crate::AppError>;
+impl<E> From<actix_web::error::BlockingError<E>> for AppError
+    where
+            E: std::fmt::Debug,
+            E: Into<AppError>, {
+    fn from(error: actix_web::error::BlockingError<E>) -> AppError {
+        match error {
+            actix_web::error::BlockingError::Error(e) => e.into(),
+            actix_web::error::BlockingError::Canceled => AppError::Server(
+                ServerError::OtherError(anyhow!("server thread pool is gone"))),
+        }
+    }
+}
+
