@@ -1,16 +1,3 @@
-// <identifier>         ::= ([A-z_]),(A-z0-9_)*
-// <string>             ::= '“‘,<string-inner>*,'"'
-// <string-inner>       ::= ...
-// <name>               ::= <symbol>|<string>
-// <integer_base10>     ::= [0-9]+
-// <float>              ::= ([0-9]*),’.’,([0-9]+)
-// <literal>            ::= <identifier>|<string>|<integer_base10>|<float>
-// <operator>           ::= ’:’|’=’|’>’|’<’|’>=’|’<=’
-// <predicate>          ::= <name>,<operator>,<literal>
-// <and-conjunction>    ::= ','|' '
-// <and-expression-group>     ::= <predicate>,((<ws>*),<or-conjunction>,(<ws>*),<predicate>)*
-// <or-conjunction>    ::= '|'|'\n'
-// <expression>         ::= <and-expression-group>,((<ws>*),<or-conjunction>,(<ws>*),<and-expression-group>)*
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Operator {

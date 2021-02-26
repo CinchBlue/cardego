@@ -11,6 +11,20 @@ use nom::multi::{fold_many0, many0, many1, separated_list1};
 use nom::sequence::{delimited, pair, preceded, tuple};
 use nom::IResult;
 
+// <identifier>         ::= ([A-z_]),(A-z0-9_)*
+// <string>             ::= '“‘,<string-inner>*,'"'
+// <string-inner>       ::= ...
+// <name>               ::= <symbol>|<string>
+// <integer_base10>     ::= [0-9]+
+// <float>              ::= ([0-9]*),’.’,([0-9]+)
+// <literal>            ::= <identifier>|<string>|<integer_base10>|<float>
+// <operator>           ::= ’:’|’=’|’>’|’<’|’>=’|’<=’
+// <predicate>          ::= <name>,<operator>,<literal>
+// <and-conjunction>    ::= ','|' '
+// <and-expression-group>     ::= <predicate>,((<ws>*),<or-conjunction>,(<ws>*),<predicate>)*
+// <or-conjunction>     ::= '|'|'\n'
+// <expression>         ::= <and-expression-group>,((<ws>*),<or-conjunction>,(<ws>*),<and-expression-group>)*
+
 pub fn identifier(input: &str) -> IResult<&str, String> {
     map_opt(
         recognize(pair(
