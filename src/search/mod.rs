@@ -1,6 +1,6 @@
 extern crate juniper;
 
-pub mod parser;
+pub mod query;
 
 use juniper::FieldResult;
 

@@ -1,10 +1,10 @@
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::bytes::complete::take_while_m_n;
-use nom::character::complete::{alpha1, multispace0, one_of, space1};
+use nom::character::complete::{alpha1, one_of};
 use nom::character::complete::{alphanumeric1, char, none_of, space0};
 
-use nom::combinator::{eof, map_opt, map_res, not, opt, recognize, value};
+use nom::combinator::{map_opt, map_res, not, opt, recognize, value};
 
 use nom::multi::{fold_many0, many0, many1, separated_list1};
 
@@ -153,8 +153,8 @@ fn float(input: &str) -> IResult<&str, &str> {
     ))(input)
 }
 
-fn literal(input: &str) -> IResult<&str, super::ast::Literal> {
-    use super::ast::Literal;
+fn literal(input: &str) -> IResult<&str, crate::search::query::ast::Literal> {
+    use crate::search::query::ast::Literal;
 
     // TODO: need to replace with real error type to catch unwrap.
     alt((
@@ -170,8 +170,8 @@ fn literal(input: &str) -> IResult<&str, super::ast::Literal> {
     ))(input)
 }
 
-fn operator(input: &str) -> IResult<&str, super::ast::Operator> {
-    use super::ast::Operator;
+fn operator(input: &str) -> IResult<&str, crate::search::query::ast::Operator> {
+    use crate::search::query::ast::Operator;
 
     alt((
         value(Operator::GreaterOrEqual, tag(">=")),
@@ -183,8 +183,8 @@ fn operator(input: &str) -> IResult<&str, super::ast::Operator> {
     ))(input)
 }
 
-fn predicate(input: &str) -> IResult<&str, super::ast::Predicate> {
-    use super::ast::Predicate;
+fn predicate(input: &str) -> IResult<&str, crate::search::query::ast::Predicate> {
+    use crate::search::query::ast::Predicate;
 
     let (i, name) = name(input)?;
     let (i, op) = operator(i)?;
@@ -193,14 +193,16 @@ fn predicate(input: &str) -> IResult<&str, super::ast::Predicate> {
     Ok((i, Predicate { name, op, literal }))
 }
 
-fn and_expression_group(input: &str) -> IResult<&str, super::ast::AndExpressionGroup> {
+fn and_expression_group(
+    input: &str,
+) -> IResult<&str, crate::search::query::ast::AndExpressionGroup> {
     preceded(
         opt(space0),
         separated_list1(many1(one_of(" \t,")), predicate),
     )(input)
 }
 
-fn expression(input: &str) -> IResult<&str, super::ast::Expression> {
+fn expression(input: &str) -> IResult<&str, crate::search::query::ast::Expression> {
     separated_list1(
         recognize(tuple((space0, many1(one_of("\n;|\0"))))),
         and_expression_group,
@@ -209,8 +211,8 @@ fn expression(input: &str) -> IResult<&str, super::ast::Expression> {
 
 #[cfg(test)]
 mod tests {
-    use crate::search::parser::ast::{Literal, Operator, Predicate};
-    use crate::search::parser::rules::*;
+    use crate::search::query::ast::{Literal, Operator, Predicate};
+    use crate::search::query::parser::rules::*;
 
     #[test]
     fn test_identifier() {
