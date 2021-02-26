@@ -1,38 +1,24 @@
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::bytes::complete::take_while_m_n;
-use nom::character::complete::{alpha1, one_of};
-use nom::character::complete::{alphanumeric1, char, none_of};
+use nom::character::complete::{alpha1, multispace0, one_of, space1};
+use nom::character::complete::{alphanumeric1, char, none_of, space0};
 
-use nom::combinator::{map, map_opt, map_res, not, opt,  recognize, value};
+use nom::combinator::{eof, map_opt, map_res, not, opt, recognize, value};
 
-use nom::multi::{fold_many0, many0, many1};
+use nom::multi::{fold_many0, many0, many1, separated_list1};
 
 use nom::sequence::{delimited, pair, preceded, tuple};
 use nom::IResult;
 
-// Nom 5's default IO types are &[u8], or dynamic-sized slices.
-// Use b"STRING" for [u8; N] static slice types,
-// use b"STRING"[..] for [u8] dynamic slice types,
-// and use &b"STRING"[..] to get &[u8] immutable referecne to dynamic slice type
-
-// Returns OK(remainder, result) or Err(something???)
-
-// <identifier>     ::= ([A-z_]),(A-z0-9_)*
-// <string>         ::= '“‘,<string-inner>*,'’”
-// <string-inner>   ::=
-// <name>           ::= <symbol>|<string>
-// <integer_base10> ::= [0-9]+
-// <float>          ::= ([0-9]*),’.’,([0-9]+)
-// <literal>        ::= <symbol>|<string>|<integer_base10>|<float>
-// <predicate>      ::= (<symbol>|<string>),’:’,(<ws>*),<operator>,(<ws>*), (<literal>)
-// <conjunction>    ::= ‘,’|’:’|’=’|’>’|’<’|’>=’|’<=’|’~=’|’:’|’|’|’\n’
-// <expression>     ::= <predicate>,((<ws>*),<conjunction>,<predicate>)*
-pub fn identifier(input: &str) -> IResult<&str, &str> {
-    recognize(pair(
-        alt((alpha1, tag("_"))),
-        many0(alt((alphanumeric1, tag("_")))),
-    ))(input)
+pub fn identifier(input: &str) -> IResult<&str, String> {
+    map_opt(
+        recognize(pair(
+            alt((alpha1, tag("_"))),
+            many0(alt((alphanumeric1, tag("_")))),
+        )),
+        |value: &str| Some(value.to_owned()),
+    )(input)
 }
 
 fn char_numerical_escape(
@@ -99,7 +85,7 @@ fn parse_escaped_char(input: &str) -> IResult<&str, char> {
 }
 
 fn parse_single_char(input: &str) -> IResult<&str, char> {
-    alt((parse_escaped_char, none_of("\\\"")))(input)
+    alt((parse_escaped_char, none_of("\"")))(input)
 }
 
 fn string(input: &str) -> IResult<&str, String> {
@@ -123,7 +109,7 @@ fn string(input: &str) -> IResult<&str, String> {
 }
 
 fn name(input: &str) -> IResult<&str, String> {
-    alt((string, map(identifier, str::to_owned)))(input)
+    alt((string, identifier))(input)
 }
 
 fn integer_base10(input: &str) -> IResult<&str, &str> {
@@ -167,17 +153,72 @@ fn float(input: &str) -> IResult<&str, &str> {
     ))(input)
 }
 
+fn literal(input: &str) -> IResult<&str, super::ast::Literal> {
+    use super::ast::Literal;
+
+    // TODO: need to replace with real error type to catch unwrap.
+    alt((
+        map_opt(alt((identifier, string)), |value| {
+            Some(Literal::String(value))
+        }),
+        map_opt(integer_base10, |value| {
+            Some(Literal::Integer(value.parse::<i64>().unwrap()))
+        }),
+        map_opt(float, |value| {
+            Some(Literal::Float(value.parse::<f64>().unwrap()))
+        }),
+    ))(input)
+}
+
+fn operator(input: &str) -> IResult<&str, super::ast::Operator> {
+    use super::ast::Operator;
+
+    alt((
+        value(Operator::GreaterOrEqual, tag(">=")),
+        value(Operator::LessOrEqual, tag("<=")),
+        value(Operator::LikeMatch, tag(":")),
+        value(Operator::Equal, tag("=")),
+        value(Operator::GreaterThan, tag(">")),
+        value(Operator::LessThan, tag("<")),
+    ))(input)
+}
+
+fn predicate(input: &str) -> IResult<&str, super::ast::Predicate> {
+    use super::ast::Predicate;
+
+    let (i, name) = name(input)?;
+    let (i, op) = operator(i)?;
+    let (i, literal) = literal(i)?;
+
+    Ok((i, Predicate { name, op, literal }))
+}
+
+fn and_expression_group(input: &str) -> IResult<&str, super::ast::AndExpressionGroup> {
+    preceded(
+        opt(space0),
+        separated_list1(many1(one_of(" \t,")), predicate),
+    )(input)
+}
+
+fn expression(input: &str) -> IResult<&str, super::ast::Expression> {
+    separated_list1(
+        recognize(tuple((space0, many1(one_of("\n;|\0"))))),
+        and_expression_group,
+    )(input)
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::search::parser::ast::{Literal, Operator, Predicate};
     use crate::search::parser::rules::*;
 
     #[test]
     fn test_identifier() {
         let input = "customer_name";
-        assert_eq!(Ok(("", input)), identifier(input));
+        assert_eq!(Ok(("", input.to_owned())), identifier(input));
 
         let input = "_UnderSc013VariableName__123_";
-        assert_eq!(Ok(("", input)), identifier(input));
+        assert_eq!(Ok(("", input.to_owned())), identifier(input));
 
         let input = "1variable1";
         assert!(identifier(input).is_err());
@@ -257,5 +298,245 @@ mod tests {
         let input = "+42.42";
         assert_eq!(Ok(("", input)), float(input));
         assert!(input.parse::<f64>().is_ok());
+    }
+
+    #[test]
+    fn test_predicate() {
+        let input = "name:hello_there";
+        assert_eq!(
+            Ok((
+                "",
+                Predicate {
+                    name: "name".to_owned(),
+                    op: Operator::LikeMatch,
+                    literal: Literal::String("hello_there".to_owned())
+                }
+            )),
+            predicate(input),
+        );
+
+        let input = "\"customer_name\"=robot_sam123";
+        assert_eq!(
+            Ok((
+                "",
+                Predicate {
+                    name: "customer_name".to_owned(),
+                    op: Operator::Equal,
+                    literal: Literal::String("robot_sam123".to_owned())
+                }
+            )),
+            predicate(input),
+        );
+
+        let input = "power>=2";
+        assert_eq!(
+            Ok((
+                "",
+                Predicate {
+                    name: "power".to_owned(),
+                    op: Operator::GreaterOrEqual,
+                    literal: Literal::Integer(2),
+                }
+            )),
+            predicate(input),
+        );
+
+        let input = "\"dueño\"<\"Maria Carter Jiménez\"";
+        assert_eq!(
+            Ok((
+                "",
+                Predicate {
+                    name: "dueño".to_owned(),
+                    op: Operator::LessThan,
+                    literal: Literal::String("Maria Carter Jiménez".to_owned()),
+                }
+            )),
+            predicate(input),
+        );
+
+        let input = "\"社長\"=\"小林\"";
+        assert_eq!(
+            Ok((
+                "",
+                Predicate {
+                    name: "社長".to_owned(),
+                    op: Operator::Equal,
+                    literal: Literal::String("小林".to_owned())
+                }
+            )),
+            predicate(input),
+        );
+    }
+
+    #[test]
+    fn test_and_expression_group() {
+        let input = "a=1 b=2 c=3";
+        assert_eq!(
+            Ok((
+                "",
+                vec![
+                    Predicate {
+                        name: "a".to_owned(),
+                        op: Operator::Equal,
+                        literal: Literal::Integer(1),
+                    },
+                    Predicate {
+                        name: "b".to_owned(),
+                        op: Operator::Equal,
+                        literal: Literal::Integer(2),
+                    },
+                    Predicate {
+                        name: "c".to_owned(),
+                        op: Operator::Equal,
+                        literal: Literal::Integer(3),
+                    },
+                ]
+            )),
+            and_expression_group(input)
+        );
+
+        let input = "name=Sword  power>=3 ,,,  power<=5 , initiative=0";
+        assert_eq!(
+            Ok((
+                "",
+                vec![
+                    Predicate {
+                        name: "name".to_owned(),
+                        op: Operator::Equal,
+                        literal: Literal::String("Sword".to_owned()),
+                    },
+                    Predicate {
+                        name: "power".to_owned(),
+                        op: Operator::GreaterOrEqual,
+                        literal: Literal::Integer(3),
+                    },
+                    Predicate {
+                        name: "power".to_owned(),
+                        op: Operator::LessOrEqual,
+                        literal: Literal::Integer(5),
+                    },
+                    Predicate {
+                        name: "initiative".to_owned(),
+                        op: Operator::Equal,
+                        literal: Literal::Integer(0),
+                    },
+                ]
+            )),
+            and_expression_group(input)
+        );
+    }
+
+    #[test]
+    fn test_expression() {
+        let input = "a=1";
+        assert_eq!(
+            Ok((
+                "",
+                vec![vec![Predicate {
+                    name: "a".to_owned(),
+                    op: Operator::Equal,
+                    literal: Literal::Integer(1),
+                }]]
+            )),
+            expression(input)
+        );
+
+        let input = "a=1 b=2 c=3 ; name=Sword  power>=3 ,,,  power<=5 , initiative=0";
+        assert_eq!(
+            Ok((
+                "",
+                vec![
+                    vec![
+                        Predicate {
+                            name: "a".to_owned(),
+                            op: Operator::Equal,
+                            literal: Literal::Integer(1),
+                        },
+                        Predicate {
+                            name: "b".to_owned(),
+                            op: Operator::Equal,
+                            literal: Literal::Integer(2),
+                        },
+                        Predicate {
+                            name: "c".to_owned(),
+                            op: Operator::Equal,
+                            literal: Literal::Integer(3),
+                        },
+                    ],
+                    vec![
+                        Predicate {
+                            name: "name".to_owned(),
+                            op: Operator::Equal,
+                            literal: Literal::String("Sword".to_owned()),
+                        },
+                        Predicate {
+                            name: "power".to_owned(),
+                            op: Operator::GreaterOrEqual,
+                            literal: Literal::Integer(3),
+                        },
+                        Predicate {
+                            name: "power".to_owned(),
+                            op: Operator::LessOrEqual,
+                            literal: Literal::Integer(5),
+                        },
+                        Predicate {
+                            name: "initiative".to_owned(),
+                            op: Operator::Equal,
+                            literal: Literal::Integer(0),
+                        },
+                    ]
+                ]
+            )),
+            expression(input)
+        );
+
+        let input = "a=1 b=2 c=3 \n\n name=Sword  power>=3 ,,,  power<=5 , initiative=0";
+        assert_eq!(
+            Ok((
+                "",
+                vec![
+                    vec![
+                        Predicate {
+                            name: "a".to_owned(),
+                            op: Operator::Equal,
+                            literal: Literal::Integer(1),
+                        },
+                        Predicate {
+                            name: "b".to_owned(),
+                            op: Operator::Equal,
+                            literal: Literal::Integer(2),
+                        },
+                        Predicate {
+                            name: "c".to_owned(),
+                            op: Operator::Equal,
+                            literal: Literal::Integer(3),
+                        },
+                    ],
+                    vec![
+                        Predicate {
+                            name: "name".to_owned(),
+                            op: Operator::Equal,
+                            literal: Literal::String("Sword".to_owned()),
+                        },
+                        Predicate {
+                            name: "power".to_owned(),
+                            op: Operator::GreaterOrEqual,
+                            literal: Literal::Integer(3),
+                        },
+                        Predicate {
+                            name: "power".to_owned(),
+                            op: Operator::LessOrEqual,
+                            literal: Literal::Integer(5),
+                        },
+                        Predicate {
+                            name: "initiative".to_owned(),
+                            op: Operator::Equal,
+                            literal: Literal::Integer(0),
+                        },
+                    ]
+                ]
+            )),
+            expression(input)
+        );
     }
 }
