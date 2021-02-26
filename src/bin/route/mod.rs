@@ -13,7 +13,7 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use log::{debug, info};
 
 use cardego_server::models::{FullCardData, NewFullCardData};
-use cardego_server::search::Schema;
+
 use juniper::http::playground::playground_source;
 use juniper::http::GraphQLRequest;
 use std::fs::File;
@@ -161,7 +161,7 @@ pub async fn route_update_card(
     let mut card: FullCardData = card.into_inner();
     card.id = *path;
 
-    let full_card_data: FullCardData = db.update_card(card)?;
+    let _full_card_data: FullCardData = db.update_card(card)?;
 
     Ok(HttpResponse::Ok().finish())
 }

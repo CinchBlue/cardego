@@ -2,7 +2,6 @@
 extern crate diesel;
 #[macro_use]
 extern crate lazy_static;
-#[macro_use]
 extern crate nom;
 
 extern crate anyhow;
