@@ -1,5 +1,5 @@
-extern crate diesel;
 extern crate askama;
+extern crate diesel;
 extern crate juniper;
 
 use super::schema::*;
@@ -7,13 +7,18 @@ use serde::{Deserialize, Serialize};
 
 use std::collections::HashMap;
 
-
 // NOTE: Cards also have many-to-one card-attributes that are stored on a
 // separate table as per usual data schema normalization.
-#[derive(Debug, Clone)]
-#[derive(Serialize, Deserialize)]
-#[derive(juniper::GraphQLObject)]
-#[derive(Identifiable, Queryable, Insertable)]
+#[derive(
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    juniper::GraphQLObject,
+    Identifiable,
+    Queryable,
+    Insertable,
+)]
 #[table_name = "cards"]
 pub struct Card {
     pub id: i32,
@@ -26,9 +31,7 @@ pub struct Card {
     pub image_url: Option<String>,
 }
 
-#[derive(Debug)]
-#[derive(Serialize, Deserialize)]
-#[derive(Insertable)]
+#[derive(Debug, Serialize, Deserialize, Insertable)]
 #[table_name = "cards"]
 pub struct NewCard<'a> {
     pub cardclass: &'a str,
@@ -40,12 +43,16 @@ pub struct NewCard<'a> {
     pub image_url: Option<&'a str>,
 }
 
-
-#[derive(Debug, Clone)]
-#[derive(Serialize, Deserialize)]
-#[derive(juniper::GraphQLObject)]
-#[derive(Identifiable, Queryable)]
-#[derive(Insertable)]
+#[derive(
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    juniper::GraphQLObject,
+    Identifiable,
+    Queryable,
+    Insertable,
+)]
 #[table_name = "decks"]
 pub struct Deck {
     pub id: i32,
@@ -53,9 +60,7 @@ pub struct Deck {
     pub name: String,
 }
 
-#[derive(Debug)]
-#[derive(Serialize, Deserialize)]
-#[derive(Insertable)]
+#[derive(Debug, Serialize, Deserialize, Insertable)]
 #[table_name = "decks"]
 pub struct NewDeck<'a> {
     pub id: Option<i32>,
@@ -63,53 +68,35 @@ pub struct NewDeck<'a> {
     pub decktype: &'a str,
 }
 
-
-#[derive(Debug, Clone)]
-#[derive(Serialize, Deserialize)]
-#[derive(juniper::GraphQLObject)]
-#[derive(Queryable)]
+#[derive(Debug, Clone, Serialize, Deserialize, juniper::GraphQLObject, Queryable)]
 pub struct DeckCardRelation {
     pub id: i32,
     pub deck_id: i32,
     pub card_id: i32,
 }
 
-
-#[derive(Debug)]
-#[derive(Serialize, Deserialize)]
-#[derive(Insertable)]
+#[derive(Debug, Serialize, Deserialize, Insertable)]
 #[table_name = "decks_cards_relation"]
 pub struct NewDeckCardRelation {
     pub deck_id: i32,
     pub card_id: i32,
 }
 
-
-#[derive(Debug, Clone)]
-#[derive(Serialize, Deserialize)]
-#[derive(juniper::GraphQLObject)]
-#[derive(Identifiable, Queryable)]
+#[derive(Debug, Clone, Serialize, Deserialize, juniper::GraphQLObject, Identifiable, Queryable)]
 pub struct CardAttribute {
     pub id: i32,
     pub name: String,
     pub order: i32,
 }
 
-
-#[derive(Debug)]
-#[derive(Serialize, Deserialize)]
-#[derive(Insertable)]
+#[derive(Debug, Serialize, Deserialize, Insertable)]
 #[table_name = "card_attributes"]
 pub struct NewCardAttribute<'a> {
     pub name: &'a str,
     pub order: i32,
 }
 
-
-#[derive(Debug, Clone)]
-#[derive(Serialize, Deserialize)]
-#[derive(juniper::GraphQLObject)]
-#[derive(Identifiable, Queryable)]
+#[derive(Debug, Clone, Serialize, Deserialize, juniper::GraphQLObject, Identifiable, Queryable)]
 #[table_name = "cards_card_attributes_relation"]
 pub struct CardCardAttributeRelation {
     pub id: i32,
@@ -117,20 +104,14 @@ pub struct CardCardAttributeRelation {
     pub card_attribute_id: i32,
 }
 
-
-#[derive(Debug)]
-#[derive(Serialize, Deserialize)]
-#[derive(Insertable)]
+#[derive(Debug, Serialize, Deserialize, Insertable)]
 #[table_name = "cards_card_attributes_relation"]
 pub struct NewCardCardAttributeRelation {
     pub card_id: i32,
     pub card_attribute_id: i32,
 }
 
-
-#[derive(Debug, Clone)]
-#[derive(Serialize, Deserialize)]
-#[derive(juniper::GraphQLObject)]
+#[derive(Debug, Clone, Serialize, Deserialize, juniper::GraphQLObject)]
 pub struct FullCardData {
     pub id: i32,
     pub cardclass: String,
@@ -143,9 +124,7 @@ pub struct FullCardData {
     pub card_attributes: Option<Vec<CardAttribute>>,
 }
 
-#[derive(Debug, Clone)]
-#[derive(Serialize, Deserialize)]
-#[derive(juniper::GraphQLInputObject)]
+#[derive(Debug, Clone, Serialize, Deserialize, juniper::GraphQLInputObject)]
 pub struct NewFullCardData {
     pub cardclass: String,
     pub action: String,
@@ -178,10 +157,10 @@ lazy_static! {
 #[cfg(test)]
 mod tests {
     extern crate serde_json;
-    
-    use serde_json::Value;
+
     use crate::models::Card;
-    
+    use serde_json::Value;
+
     #[test]
     fn given_card_json_string_when_serialize_then_successful() {
         let json_string = r#"{"id":1337,"cardclass":"1H","action":"Attack","speed":"Normal","initiative":3,"name":"Lmao","desc":"Range 1. Lmao.","image_url":null}"#;
@@ -189,4 +168,3 @@ mod tests {
         let _json_card_value: Card = serde_json::from_str(json_string).unwrap();
     }
 }
-

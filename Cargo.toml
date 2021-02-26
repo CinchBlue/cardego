@@ -52,7 +52,7 @@ askama = "0.10.3"
 juniper = "0.14.2"
 
 # Nom for search query syntax context-free parsing
-nom = "5"
+nom = "6"
 
 
 [[bin]]

@@ -1,10 +1,10 @@
 extern crate anyhow;
-extern crate thiserror;
 extern crate derive_more;
+extern crate thiserror;
 
-use std::convert::{From};
-use actix_web::http::{StatusCode};
+use actix_web::http::StatusCode;
 use anyhow::anyhow;
+use std::convert::From;
 
 pub type Result<T> = std::result::Result<T, crate::AppError>;
 
@@ -14,10 +14,10 @@ pub enum ServerError {
     DatabaseConnectionError,
     #[error("FileIOError: file: {0}")]
     FileIOError(String),
-    
+
     #[error(transparent)]
     IOError(#[from] std::io::Error),
-    
+
     #[error(transparent)]
     OtherError(#[from] anyhow::Error),
 }
@@ -38,8 +38,6 @@ pub enum AppError {
     Client(ClientError),
 }
 
-
-
 impl From<std::io::Error> for AppError {
     fn from(err: std::io::Error) -> Self {
         AppError::Server(ServerError::IOError(err))
@@ -52,16 +50,11 @@ impl From<anyhow::Error> for AppError {
     }
 }
 
-
 impl From<AppError> for std::io::Error {
     fn from(err: AppError) -> Self {
-        std::io::Error::new(
-            std::io::ErrorKind::Other,
-            err
-        )
+        std::io::Error::new(std::io::ErrorKind::Other, err)
     }
 }
-
 
 impl From<ServerError> for crate::AppError {
     fn from(err: ServerError) -> Self {
@@ -75,7 +68,6 @@ impl From<ServerError> for std::io::Error {
     }
 }
 
-
 impl From<ClientError> for crate::AppError {
     fn from(err: ClientError) -> Self {
         AppError::Client(err)
@@ -85,21 +77,18 @@ impl From<ClientError> for crate::AppError {
 impl From<ClientError> for std::io::Error {
     fn from(err: ClientError) -> Self {
         match err {
-            ClientError::ResourceNotFound => std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                err),
-            ClientError::InvalidInput(_) => std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                err),
+            ClientError::ResourceNotFound => std::io::Error::new(std::io::ErrorKind::NotFound, err),
+            ClientError::InvalidInput(_) => {
+                std::io::Error::new(std::io::ErrorKind::InvalidInput, err)
+            }
         }
     }
 }
 
-
 impl actix_web::ResponseError for AppError {
     fn status_code(&self) -> StatusCode {
-        use crate::AppError::{Server, Client};
-        
+        use crate::AppError::{Client, Server};
+
         match self {
             Server(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Client(_) => StatusCode::BAD_REQUEST,
@@ -108,15 +97,16 @@ impl actix_web::ResponseError for AppError {
 }
 
 impl<E> From<actix_web::error::BlockingError<E>> for AppError
-    where
-            E: std::fmt::Debug,
-            E: Into<AppError>, {
+where
+    E: std::fmt::Debug,
+    E: Into<AppError>,
+{
     fn from(error: actix_web::error::BlockingError<E>) -> AppError {
         match error {
             actix_web::error::BlockingError::Error(e) => e.into(),
-            actix_web::error::BlockingError::Canceled => AppError::Server(
-                ServerError::OtherError(anyhow!("server thread pool is gone"))),
+            actix_web::error::BlockingError::Canceled => AppError::Server(ServerError::OtherError(
+                anyhow!("server thread pool is gone"),
+            )),
         }
     }
 }
-
