@@ -10,7 +10,7 @@ build = 'build.rs'
 [dependencies]
 # log4rs for logging like log4j because I'm used to it
 log = "0.4.8"
-log4rs = { version = "0.11.0", features = ["rolling_file_appender", "compound_policy", "size_trigger", "fixed_window_roller"]}
+log4rs = { version = "0.11.0", features = ["rolling_file_appender", "compound_policy", "size_trigger", "fixed_window_roller", "pattern_encoder"]}
 
 # actix-web for HTTP server framework
 actix = "0"
@@ -20,6 +20,7 @@ actix-files = "0.3.0"
 
 # Diesel for SQLite3 access
 diesel = { version = "1.4.5", features = ["sqlite"]}
+libsqlite3-sys = { version = "*", features = ["bundled"] }
 
 # serde for IO serialization
 serde = {version = "1.0.106", features = ["derive"]}
