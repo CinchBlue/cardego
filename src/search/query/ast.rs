@@ -1,8 +1,9 @@
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Operator {
     LikeMatch,
+    NotLikeMatch,
     Equal,
+    NotEqual,
     GreaterThan,
     LessThan,
     GreaterOrEqual,
@@ -23,5 +24,8 @@ pub struct Predicate {
     pub literal: Literal,
 }
 
-pub type AndExpressionGroup = Vec<Predicate>;
-pub type Expression = Vec<AndExpressionGroup>;
+#[derive(Debug, Clone, PartialEq)]
+pub struct AndExpressionGroup(pub Vec<Predicate>);
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Expression(pub Vec<AndExpressionGroup>);

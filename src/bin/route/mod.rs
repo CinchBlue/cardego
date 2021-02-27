@@ -47,7 +47,7 @@ pub async fn route_get_card(
     let db = get_connection(&state)?;
 
     let card = db.get_card(path.0).or(Err(ClientError::ResourceNotFound))?;
-
+    
     let card_attributes = db
         .get_card_attributes_by_card_id(path.0)
         .map(|v| Some(v))
@@ -251,6 +251,27 @@ pub async fn route_query_decks(
 }
 
 pub async fn route_query_cards(
+    state: web::Data<Arc<Mutex<ServerState>>>,
+    query: web::Query<std::collections::HashMap<String, String>>,
+    req: HttpRequest,
+) -> Result<HttpResponse> {
+    let state = lock_server_state(&state)?;
+    let db = get_connection(&state)?;
+
+    info!("query_string: {:?}", req.query_string());
+
+    let query_string = query.get("q").ok_or_else(|| {
+        ClientError::OtherError(anyhow!("Invalid query `{}` provided", req.query_string()))
+    })?;
+
+    let cards = db
+        .query_cards(query_string)
+        .map_err(|err| ClientError::OtherError(anyhow!("Query cards error `{}`", err)))?;
+
+    Ok(HttpResponse::Ok().json(cards))
+}
+
+pub async fn route_query_cards_by_name(
     state: web::Data<Arc<Mutex<ServerState>>>,
     path: web::Path<String>,
 ) -> Result<HttpResponse> {

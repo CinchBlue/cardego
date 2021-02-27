@@ -4,10 +4,11 @@ use nom::bytes::complete::take_while_m_n;
 use nom::character::complete::{alpha1, one_of};
 use nom::character::complete::{alphanumeric1, char, none_of, space0};
 
-use nom::combinator::{map_opt, map_res, not, opt, recognize, value};
+use nom::combinator::{map, map_opt, map_res, not, opt, recognize, value};
 
 use nom::multi::{fold_many0, many0, many1, separated_list1};
 
+use crate::search::query::ast::{AndExpressionGroup, Expression};
 use nom::sequence::{delimited, pair, preceded, tuple};
 use nom::IResult;
 
@@ -18,7 +19,7 @@ use nom::IResult;
 // <integer_base10>     ::= [0-9]+
 // <float>              ::= ([0-9]*),’.’,([0-9]+)
 // <literal>            ::= <identifier>|<string>|<integer_base10>|<float>
-// <operator>           ::= ’:’|’=’|’>’|’<’|’>=’|’<=’
+// <operator>           ::= ’:’|'!:'|’=’|’>’|’<’|’>=’|’<=’|'!='
 // <predicate>          ::= <name>,<operator>,<literal>
 // <and-conjunction>    ::= ','|' '
 // <and-expression-group>     ::= <predicate>,((<ws>*),<or-conjunction>,(<ws>*),<predicate>)*
@@ -53,23 +54,23 @@ fn char_numerical_escape(
     }
 }
 
-fn parse_unicode_hex_4(input: &str) -> IResult<&str, char> {
+pub fn parse_unicode_hex_4(input: &str) -> IResult<&str, char> {
     char_numerical_escape("u", 4, 4, 16)(input)
 }
 
-fn parse_unicode_hex_8(input: &str) -> IResult<&str, char> {
+pub fn parse_unicode_hex_8(input: &str) -> IResult<&str, char> {
     char_numerical_escape("U", 8, 8, 16)(input)
 }
 
-fn parse_char_hex_2(input: &str) -> IResult<&str, char> {
+pub fn parse_char_hex_2(input: &str) -> IResult<&str, char> {
     char_numerical_escape("x", 1, 2, 16)(input)
 }
 
-fn parse_char_octal_3(input: &str) -> IResult<&str, char> {
+pub fn parse_char_octal_3(input: &str) -> IResult<&str, char> {
     char_numerical_escape("", 1, 3, 8)(input)
 }
 
-fn parse_escaped_char(input: &str) -> IResult<&str, char> {
+pub fn parse_escaped_char(input: &str) -> IResult<&str, char> {
     preceded(
         char('\\'),
         alt((
@@ -98,11 +99,11 @@ fn parse_escaped_char(input: &str) -> IResult<&str, char> {
     )(input)
 }
 
-fn parse_single_char(input: &str) -> IResult<&str, char> {
+pub fn parse_single_char(input: &str) -> IResult<&str, char> {
     alt((parse_escaped_char, none_of("\"")))(input)
 }
 
-fn string(input: &str) -> IResult<&str, String> {
+pub fn string(input: &str) -> IResult<&str, String> {
     let build_string = fold_many0(
         // Consumes the next logical character
         parse_single_char,
@@ -122,11 +123,11 @@ fn string(input: &str) -> IResult<&str, String> {
     delimited(char('"'), build_string, char('"'))(input)
 }
 
-fn name(input: &str) -> IResult<&str, String> {
+pub fn name(input: &str) -> IResult<&str, String> {
     alt((string, identifier))(input)
 }
 
-fn integer_base10(input: &str) -> IResult<&str, &str> {
+pub fn integer_base10(input: &str) -> IResult<&str, &str> {
     recognize(pair(
         opt(one_of("-+")),
         alt((
@@ -136,13 +137,13 @@ fn integer_base10(input: &str) -> IResult<&str, &str> {
     ))(input)
 }
 
-fn decimal_digits(input: &str) -> IResult<&str, &str> {
+pub fn decimal_digits(input: &str) -> IResult<&str, &str> {
     recognize(many1(one_of("0123456789")))(input)
 }
 
 /// Shamelessly copied from nom's nom_recipes.md, and then modified to fit my
 /// use case.
-fn float(input: &str) -> IResult<&str, &str> {
+pub fn float(input: &str) -> IResult<&str, &str> {
     recognize(pair(
         // Recongize the leading + or -.
         opt(one_of("-+")),
@@ -167,7 +168,7 @@ fn float(input: &str) -> IResult<&str, &str> {
     ))(input)
 }
 
-fn literal(input: &str) -> IResult<&str, crate::search::query::ast::Literal> {
+pub fn literal(input: &str) -> IResult<&str, crate::search::query::ast::Literal> {
     use crate::search::query::ast::Literal;
 
     // TODO: need to replace with real error type to catch unwrap.
@@ -184,12 +185,14 @@ fn literal(input: &str) -> IResult<&str, crate::search::query::ast::Literal> {
     ))(input)
 }
 
-fn operator(input: &str) -> IResult<&str, crate::search::query::ast::Operator> {
+pub fn operator(input: &str) -> IResult<&str, crate::search::query::ast::Operator> {
     use crate::search::query::ast::Operator;
 
     alt((
         value(Operator::GreaterOrEqual, tag(">=")),
         value(Operator::LessOrEqual, tag("<=")),
+        value(Operator::NotEqual, tag("!=")),
+        value(Operator::LikeMatch, tag("!:")),
         value(Operator::LikeMatch, tag(":")),
         value(Operator::Equal, tag("=")),
         value(Operator::GreaterThan, tag(">")),
@@ -197,7 +200,7 @@ fn operator(input: &str) -> IResult<&str, crate::search::query::ast::Operator> {
     ))(input)
 }
 
-fn predicate(input: &str) -> IResult<&str, crate::search::query::ast::Predicate> {
+pub fn predicate(input: &str) -> IResult<&str, crate::search::query::ast::Predicate> {
     use crate::search::query::ast::Predicate;
 
     let (i, name) = name(input)?;
@@ -207,25 +210,30 @@ fn predicate(input: &str) -> IResult<&str, crate::search::query::ast::Predicate>
     Ok((i, Predicate { name, op, literal }))
 }
 
-fn and_expression_group(
+pub fn and_expression_group(
     input: &str,
 ) -> IResult<&str, crate::search::query::ast::AndExpressionGroup> {
     preceded(
         opt(space0),
-        separated_list1(many1(one_of(" \t,")), predicate),
+        map(separated_list1(many1(one_of(" \t,")), predicate), |value| {
+            AndExpressionGroup(value)
+        }),
     )(input)
 }
 
-fn expression(input: &str) -> IResult<&str, crate::search::query::ast::Expression> {
-    separated_list1(
-        recognize(tuple((space0, many1(one_of("\n;|\0"))))),
-        and_expression_group,
+pub fn expression(input: &str) -> IResult<&str, crate::search::query::ast::Expression> {
+    map(
+        separated_list1(
+            recognize(tuple((space0, many1(one_of("\n;|\0"))))),
+            and_expression_group,
+        ),
+        |value| Expression(value),
     )(input)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::search::query::ast::{Literal, Operator, Predicate};
+    use crate::search::query::ast::{AndExpressionGroup, Expression, Literal, Operator, Predicate};
     use crate::search::query::parser::rules::*;
 
     #[test]
@@ -331,13 +339,13 @@ mod tests {
             predicate(input),
         );
 
-        let input = "\"customer_name\"=robot_sam123";
+        let input = "\"customer_name\"!=robot_sam123";
         assert_eq!(
             Ok((
                 "",
                 Predicate {
                     name: "customer_name".to_owned(),
-                    op: Operator::Equal,
+                    op: Operator::NotEqual,
                     literal: Literal::String("robot_sam123".to_owned())
                 }
             )),
@@ -390,7 +398,7 @@ mod tests {
         assert_eq!(
             Ok((
                 "",
-                vec![
+                AndExpressionGroup(vec![
                     Predicate {
                         name: "a".to_owned(),
                         op: Operator::Equal,
@@ -406,7 +414,7 @@ mod tests {
                         op: Operator::Equal,
                         literal: Literal::Integer(3),
                     },
-                ]
+                ])
             )),
             and_expression_group(input)
         );
@@ -415,7 +423,7 @@ mod tests {
         assert_eq!(
             Ok((
                 "",
-                vec![
+                AndExpressionGroup(vec![
                     Predicate {
                         name: "name".to_owned(),
                         op: Operator::Equal,
@@ -436,7 +444,7 @@ mod tests {
                         op: Operator::Equal,
                         literal: Literal::Integer(0),
                     },
-                ]
+                ])
             )),
             and_expression_group(input)
         );
@@ -448,11 +456,11 @@ mod tests {
         assert_eq!(
             Ok((
                 "",
-                vec![vec![Predicate {
+                Expression(vec![AndExpressionGroup(vec![Predicate {
                     name: "a".to_owned(),
                     op: Operator::Equal,
                     literal: Literal::Integer(1),
-                }]]
+                }])])
             )),
             expression(input)
         );
@@ -461,8 +469,8 @@ mod tests {
         assert_eq!(
             Ok((
                 "",
-                vec![
-                    vec![
+                Expression(vec![
+                    AndExpressionGroup(vec![
                         Predicate {
                             name: "a".to_owned(),
                             op: Operator::Equal,
@@ -478,8 +486,8 @@ mod tests {
                             op: Operator::Equal,
                             literal: Literal::Integer(3),
                         },
-                    ],
-                    vec![
+                    ]),
+                    AndExpressionGroup(vec![
                         Predicate {
                             name: "name".to_owned(),
                             op: Operator::Equal,
@@ -500,8 +508,8 @@ mod tests {
                             op: Operator::Equal,
                             literal: Literal::Integer(0),
                         },
-                    ]
-                ]
+                    ])
+                ])
             )),
             expression(input)
         );
@@ -510,8 +518,8 @@ mod tests {
         assert_eq!(
             Ok((
                 "",
-                vec![
-                    vec![
+                Expression(vec![
+                    AndExpressionGroup(vec![
                         Predicate {
                             name: "a".to_owned(),
                             op: Operator::Equal,
@@ -527,8 +535,8 @@ mod tests {
                             op: Operator::Equal,
                             literal: Literal::Integer(3),
                         },
-                    ],
-                    vec![
+                    ]),
+                    AndExpressionGroup(vec![
                         Predicate {
                             name: "name".to_owned(),
                             op: Operator::Equal,
@@ -549,8 +557,8 @@ mod tests {
                             op: Operator::Equal,
                             literal: Literal::Integer(0),
                         },
-                    ]
-                ]
+                    ])
+                ])
             )),
             expression(input)
         );

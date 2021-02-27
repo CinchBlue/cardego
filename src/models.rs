@@ -18,6 +18,7 @@ use std::collections::HashMap;
     Identifiable,
     Queryable,
     Insertable,
+    QueryableByName,
 )]
 #[table_name = "cards"]
 pub struct Card {

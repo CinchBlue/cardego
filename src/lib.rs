@@ -22,6 +22,7 @@ use self::database::DatabaseContext;
 use self::errors::*;
 use self::models::*;
 
+use diesel::sql_query;
 use std::error::Error;
 
 pub struct ServerState {
@@ -377,6 +378,26 @@ impl DatabaseContext {
             .filter(action.like(s))
             .load::<Card>(self.connection.as_ref())?;
 
+        Ok(results)
+    }
+
+    pub fn query_cards(&self, req_query_string: &str) -> Result<Vec<Card>, Box<dyn Error>> {
+        use crate::search::query::parser;
+
+        // Try to parse the query.
+        let sql_query_string = parser::rules::expression(req_query_string)
+            .map_err(|err| {
+                ClientError::OtherError(anyhow!(
+                    "Could not parse query `{}` due to error `{:?}`",
+                    req_query_string,
+                    err
+                ))
+            })?
+            .1
+            .to_sql_query_string("cards");
+
+        // Try to send the query.
+        let results = sql_query(sql_query_string).load::<Card>(self.connection.as_ref())?;
         Ok(results)
     }
 

@@ -28,6 +28,8 @@ pub enum ClientError {
     ResourceNotFound,
     #[error("Invalid input for operation found: {0}")]
     InvalidInput(String),
+    #[error(transparent)]
+    OtherError(#[from] anyhow::Error),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -81,6 +83,7 @@ impl From<ClientError> for std::io::Error {
             ClientError::InvalidInput(_) => {
                 std::io::Error::new(std::io::ErrorKind::InvalidInput, err)
             }
+            ClientError::OtherError(err) => std::io::Error::from(AppError::from(err)),
         }
     }
 }

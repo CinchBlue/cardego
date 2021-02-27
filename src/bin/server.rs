@@ -1,6 +1,8 @@
+#[macro_use]
+extern crate anyhow;
+
 extern crate actix_files;
 extern crate actix_web;
-extern crate anyhow;
 extern crate cardego_server;
 extern crate derive_more;
 extern crate thiserror;
@@ -61,11 +63,14 @@ async fn main() -> Result<()> {
             // boost for amount of bytes per image get!
             .wrap(middleware::Compress::default())
             .route("/", web::get().to(index))
+            .route("/cards", web::get().to(route_query_cards))
+            .route("/cards", web::post().to(route_create_card))
             .service(
                 web::scope("/cards")
+                    .route("", web::get().to(route_query_cards))
+                    .route("", web::post().to(route_create_card))
                     .route("/{id}", web::get().to(route_get_card))
                     .route("/{id}", web::put().to(route_update_card))
-                    .route("", web::post().to(route_create_card))
                     .route(
                         "/{id}/image.png",
                         web::get().to(route_get_card_image_by_html),
@@ -85,7 +90,7 @@ async fn main() -> Result<()> {
             .service(
                 web::scope("/search")
                     .route("/decks/{name}", web::get().to(route_query_decks))
-                    .route("/cards/{name}", web::get().to(route_query_cards)),
+                    .route("/cards/{name}", web::get().to(route_query_cards_by_name)),
             )
             .service(
                 web::scope("/graphql")
