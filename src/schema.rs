@@ -42,3 +42,17 @@ table! {
         card_attribute_id -> Integer,
     }
 }
+
+table! {
+    search_card_data (id) {
+        id -> Integer,
+        cardclass -> Text,
+        action -> Text,
+        speed -> Text,
+        initiative -> Integer,
+        name -> Text,
+        desc -> Text,
+        image_url -> Nullable<Text>,
+        attribute_ids -> Nullable<Text>,
+    }
+}

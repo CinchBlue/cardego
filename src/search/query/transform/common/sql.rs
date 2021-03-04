@@ -1,11 +1,16 @@
 use crate::search::query::ast::{AndExpressionGroup, Expression, Literal, Operator, Predicate};
 
 impl Expression {
-    pub fn to_sql_query_string(&self, table_name: &str) -> String {
-        let mut result = format!(
-            "SELECT * FROM {table_name}\nWHERE ",
-            table_name = table_name
-        );
+    pub fn to_sql_where_string(&self) -> String {
+        if self.0.len() <= 0 {
+            return "".to_string();
+        }
+
+        if self.0.len() == 1 && self.0[0].0.len() == 0 {
+            return "".to_string();
+        }
+
+        let mut result = "WHERE ".to_owned();
 
         let where_clauses: String = self
             .0
@@ -73,14 +78,13 @@ impl Literal {
 mod tests {
     use crate::search::query::parser::rules::expression;
 
-    const TEST_TABLE_NAME: &str = "TABLE_NAME";
-
     #[test]
     fn test_expression() {
         let input = "a=1, b=2, c!=3; input>=5; customer_name=aditya";
         assert_eq!(
-            expression(input).unwrap().1.to_sql_query_string(TEST_TABLE_NAME),
-            "SELECT * FROM TABLE_NAME\nWHERE (`a`=1 AND `b`=2 AND `c`!=3) OR (`input`>=5) OR (`customer_name`=\'aditya\')".to_owned()
+            expression(input).unwrap().1.to_sql_where_string(),
+            "WHERE (`a`=1 AND `b`=2 AND `c`!=3) OR (`input`>=5) OR (`customer_name`=\'aditya\')"
+                .to_owned()
         );
     }
 }

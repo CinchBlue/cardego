@@ -47,8 +47,8 @@ pub async fn route_get_card(
     let db = get_connection(&state)?;
 
     let card = db.get_card(path.0).or(Err(ClientError::ResourceNotFound))?;
-    
-    let card_attributes = db
+
+    let attributes = db
         .get_card_attributes_by_card_id(path.0)
         .map(|v| Some(v))
         .unwrap_or(None);
@@ -62,7 +62,7 @@ pub async fn route_get_card(
         name: card.name,
         desc: card.desc,
         image_url: card.image_url,
-        card_attributes,
+        attributes,
     }))
 }
 

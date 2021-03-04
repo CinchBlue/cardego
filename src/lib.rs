@@ -3,8 +3,9 @@ extern crate diesel;
 #[macro_use]
 extern crate lazy_static;
 extern crate nom;
-
+#[macro_use]
 extern crate anyhow;
+extern crate itertools;
 
 pub mod database;
 pub mod errors;
@@ -23,7 +24,10 @@ use self::errors::*;
 use self::models::*;
 
 use diesel::sql_query;
+use std::collections::HashMap;
 use std::error::Error;
+
+use itertools::Itertools;
 
 pub struct ServerState {
     pub config: ApplicationConfig,
@@ -60,7 +64,7 @@ impl DatabaseContext {
     pub fn get_full_card_data(&self, card_id: i32) -> Result<FullCardData> {
         let card = self.get_card(card_id)?;
 
-        let card_attributes = self
+        let attributes = self
             .get_card_attributes_by_card_id(card_id)
             .map(|v| Some(v))
             .unwrap_or(None);
@@ -74,7 +78,7 @@ impl DatabaseContext {
             name: card.name,
             desc: card.desc,
             image_url: card.image_url,
-            card_attributes,
+            attributes,
         })
     }
 
@@ -149,7 +153,7 @@ impl DatabaseContext {
         };
 
         // Get the associated attributes out again
-        let card_attributes = self
+        let attributes = self
             .get_card_attributes_by_card_id(last_id)
             .map(|v| Some(v))
             .unwrap_or(None);
@@ -157,7 +161,7 @@ impl DatabaseContext {
         debug!("create_card succeeded");
         Ok(FullCardData {
             id: last_id,
-            card_attributes: card_attributes,
+            attributes: attributes,
             cardclass: card_data.cardclass.clone(),
             action: card_data.action.clone(),
             speed: card_data.speed.clone(),
@@ -214,7 +218,7 @@ impl DatabaseContext {
 
         // Insert attributes into the attribute table
         let new_card_attribute_relations: Option<Vec<NewCardCardAttributeRelation>> =
-            card_data.card_attributes.as_ref().map(|v| {
+            card_data.attributes.as_ref().map(|v| {
                 v.iter()
                     .map(|attr| NewCardCardAttributeRelation {
                         card_id: last_id,
@@ -242,7 +246,7 @@ impl DatabaseContext {
         debug!("update_card succeeded");
         Ok(FullCardData {
             id: last_id,
-            card_attributes: card_data.card_attributes.clone(),
+            attributes: card_data.attributes.clone(),
             cardclass: card.cardclass,
             action: card.action,
             speed: card.speed,
@@ -332,6 +336,22 @@ impl DatabaseContext {
         Ok(result)
     }
 
+    pub fn query_decks(self, req_query_string: &str) -> Result<Vec<Deck>, Box<dyn Error>> {
+        use crate::search::query::ast::Expression;
+
+        // Try to parse the query and convert it to a where clause.
+        let sql_where_string =
+            Expression::from_query_string(req_query_string)?.to_sql_where_string();
+
+        // Put the where clause into the larger query string.
+        let sql_query_string = format!("SELECT * FROM decks {}", sql_where_string);
+
+        // Try to send the query.
+        let results = sql_query(sql_query_string).load::<Deck>(self.connection.as_ref())?;
+
+        Ok(results)
+    }
+
     pub fn query_decks_by_name(&self, s: String) -> Result<Vec<Deck>> {
         use self::schema::decks::dsl::*;
 
@@ -381,24 +401,167 @@ impl DatabaseContext {
         Ok(results)
     }
 
-    pub fn query_cards(&self, req_query_string: &str) -> Result<Vec<Card>, Box<dyn Error>> {
-        use crate::search::query::parser;
+    /// Get the list of cards that match.
+    /// Then, get the total list of relevant card attributes by id.
+    /// Merge the CardAttribute onto the SearchCardData to become FullCardData.
+    /// Return the full list of FullCardData.
+    pub fn query_cards(&self, req_query_string: &str) -> Result<Vec<FullCardData>, Box<dyn Error>> {
+        use crate::search::query::ast::Expression;
 
         // Try to parse the query.
-        let sql_query_string = parser::rules::expression(req_query_string)
-            .map_err(|err| {
-                ClientError::OtherError(anyhow!(
-                    "Could not parse query `{}` due to error `{:?}`",
-                    req_query_string,
-                    err
-                ))
-            })?
-            .1
-            .to_sql_query_string("cards");
+        let query_expression = Expression::from_query_string(req_query_string)?;
+
+        // Split the expression according to the table they need to filter.
+        let table_to_query_expression =
+            query_expression.split_query_by_name(&TABLE_TO_UNIQUE_SEARCH_TERMS);
+
+        debug!("{:?}", table_to_query_expression);
+
+        let sql_where_string = table_to_query_expression
+            .get("search_card_data")
+            .unwrap()
+            .to_sql_where_string();
+
+        // Put the where clause into the larger query string.
+        let sql_query_string = format!("SELECT * FROM search_card_data {}", sql_where_string);
+
+        debug!("cards query string: {}", sql_query_string);
 
         // Try to send the query.
-        let results = sql_query(sql_query_string).load::<Card>(self.connection.as_ref())?;
+        let search_results: Vec<SearchCardData> =
+            sql_query(sql_query_string).load::<SearchCardData>(self.connection.as_ref())?;
+
+        // For each card with attributes, get CardAttribute ids to fetch.
+        let card_ids = search_results
+            .iter()
+            .map(|card| card.id)
+            .collect::<Vec<i32>>();
+
+        // Get HashMap of (card -> card_attributes)
+        let cards_to_attributes = self.get_card_attributes_by_card_id_and_filter(
+            &table_to_query_expression.get("card_attributes").unwrap(),
+            Some(card_ids),
+        )?;
+
+        // Merge search result entries with their attributes if needed
+        let results: Vec<FullCardData> = search_results
+            .into_iter()
+            .filter(|search_card_data| cards_to_attributes.contains_key(&search_card_data.id))
+            .map(|search_card_data| {
+                let id = search_card_data.id;
+                let attributes = cards_to_attributes.get(&id);
+
+                FullCardData {
+                    id,
+                    cardclass: search_card_data.cardclass,
+                    action: search_card_data.action,
+                    speed: search_card_data.speed,
+                    initiative: search_card_data.initiative,
+                    name: search_card_data.name,
+                    desc: search_card_data.desc,
+                    image_url: search_card_data.image_url,
+                    attributes: attributes.map(|v| v.clone()),
+                }
+            })
+            .collect::<Vec<FullCardData>>();
+
         Ok(results)
+    }
+
+    pub fn get_card_attributes_by_card_ids(
+        &self,
+        card_ids: Vec<i32>,
+    ) -> Result<HashMap<i32, Vec<CardAttribute>>> {
+        use crate::schema::*;
+
+        // SELECT
+        let query = cards_card_attributes_relation::dsl::cards_card_attributes_relation
+            .inner_join(card_attributes::dsl::card_attributes.on(
+                card_attributes::dsl::id.eq(cards_card_attributes_relation::dsl::card_attribute_id),
+            ))
+            .filter(cards_card_attributes_relation::dsl::card_id.eq_any(card_ids))
+            .select((
+                cards_card_attributes_relation::card_id,
+                card_attributes::all_columns,
+            ));
+
+        debug!(
+            "{}",
+            diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query).to_string()
+        );
+
+        let results = query.load::<(i32, CardAttribute)>(self.connection.as_ref())?;
+
+        // Merge list by card_id
+        let grouped_results = results.into_iter().into_group_map();
+
+        Ok(grouped_results)
+    }
+
+    pub fn get_card_attributes_by_card_id_and_filter(
+        &self,
+        expr: &crate::search::query::ast::Expression,
+        card_ids: Option<Vec<i32>>,
+    ) -> Result<HashMap<i32, Vec<CardAttribute>>> {
+        let mut sql_query_string = format!(
+            "SELECT card_id as card_id, \
+            attribute_id AS id, \
+            attribute_name AS name, \
+            attribute_order AS [order] \
+        FROM (\
+            SELECT cards_card_attributes_relation.card_id as card_id, \
+                card_attributes.id AS attribute_id, \
+                card_attributes.name AS attribute_name, \
+                card_attributes.[order] AS attribute_order \
+            FROM card_attributes \
+                LEFT JOIN \
+                ( \
+                    cards_card_attributes_relation \
+                ) \
+            ON attribute_id = cards_card_attributes_relation.card_attribute_id \
+        {} \
+        ) \
+        ",
+            expr.to_sql_where_string()
+        );
+
+        if let Some(card_id_nums) = card_ids {
+            sql_query_string += &format!(
+                "WHERE card_id IN ({})",
+                card_id_nums
+                    .iter()
+                    .map(|id| format!("\"{}\"", id))
+                    .collect::<Vec<String>>()
+                    .join(",")
+            );
+        };
+
+        debug!("card_attribute query: {}", sql_query_string);
+
+        // Try to send the query.
+        let results = sql_query(sql_query_string)
+            .load::<CardIdWithCardAttribute>(self.connection.as_ref())?;
+
+        // Merge list by card_id
+        let grouped_results = results.into_iter().into_group_map_by(|entry| entry.card_id);
+
+        let grouped_results = grouped_results
+            .into_iter()
+            .map(|(key, val)| {
+                (
+                    key,
+                    val.into_iter()
+                        .map(|entry| CardAttribute {
+                            id: entry.id,
+                            name: entry.name,
+                            order: entry.order,
+                        })
+                        .collect::<Vec<CardAttribute>>(),
+                )
+            })
+            .collect::<HashMap<i32, Vec<CardAttribute>>>();
+
+        Ok(grouped_results)
     }
 
     pub fn get_card_attributes_by_card_id(&self, card_id: i32) -> Result<Vec<CardAttribute>> {

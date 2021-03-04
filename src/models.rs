@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use std::collections::HashMap;
 
+use diesel::sql_types::{Integer, Text};
+
 // NOTE: Cards also have many-to-one card-attributes that are stored on a
 // separate table as per usual data schema normalization.
 #[derive(
@@ -53,6 +55,7 @@ pub struct NewCard<'a> {
     Identifiable,
     Queryable,
     Insertable,
+    QueryableByName,
 )]
 #[table_name = "decks"]
 pub struct Deck {
@@ -83,7 +86,17 @@ pub struct NewDeckCardRelation {
     pub card_id: i32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, juniper::GraphQLObject, Identifiable, Queryable)]
+#[derive(
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    juniper::GraphQLObject,
+    Identifiable,
+    Queryable,
+    QueryableByName,
+)]
+#[table_name = "card_attributes"]
 pub struct CardAttribute {
     pub id: i32,
     pub name: String,
@@ -112,6 +125,18 @@ pub struct NewCardCardAttributeRelation {
     pub card_attribute_id: i32,
 }
 
+#[derive(Debug, Serialize, Deserialize, QueryableByName)]
+pub struct CardIdWithCardAttribute {
+    #[sql_type = "Integer"]
+    pub card_id: i32,
+    #[sql_type = "Integer"]
+    pub id: i32,
+    #[sql_type = "Text"]
+    pub name: String,
+    #[sql_type = "Integer"]
+    pub order: i32,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, juniper::GraphQLObject)]
 pub struct FullCardData {
     pub id: i32,
@@ -122,7 +147,30 @@ pub struct FullCardData {
     pub name: String,
     pub desc: String,
     pub image_url: Option<String>,
-    pub card_attributes: Option<Vec<CardAttribute>>,
+    pub attributes: Option<Vec<CardAttribute>>,
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    juniper::GraphQLObject,
+    Identifiable,
+    Queryable,
+    QueryableByName,
+)]
+#[table_name = "search_card_data"]
+pub struct SearchCardData {
+    pub id: i32,
+    pub cardclass: String,
+    pub action: String,
+    pub speed: String,
+    pub initiative: i32,
+    pub name: String,
+    pub desc: String,
+    pub image_url: Option<String>,
+    pub attribute_ids: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, juniper::GraphQLInputObject)]
@@ -151,6 +199,29 @@ lazy_static! {
         m.insert("Po".to_string(), "Power");
         m.insert("1H".to_string(), "1-Handed Arms");
         m.insert("2H".to_string(), "2-Handed Arms");
+
+        m
+    };
+    pub static ref TABLE_TO_UNIQUE_SEARCH_TERMS: HashMap<String, Vec<&'static str>> = {
+        let mut m = HashMap::new();
+        m.insert(
+            "search_card_data".to_string(),
+            vec![
+                "id",
+                "cardclass",
+                "action",
+                "speed",
+                "initiative",
+                "name",
+                "desc",
+                "image_url",
+            ],
+        );
+        m.insert(
+            "card_attributes".to_string(),
+            vec!["attribute_name", "attribute_id"],
+        );
+
         m
     };
 }

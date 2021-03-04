@@ -55,6 +55,9 @@ juniper = "0.14.2"
 # Nom for search query syntax context-free parsing
 nom = "6"
 
+# Itertools for group_by and other iterators
+itertools = "0.10.0"
+
 
 [[bin]]
 name = "server"
