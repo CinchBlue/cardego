@@ -192,7 +192,7 @@ pub fn operator(input: &str) -> IResult<&str, crate::search::query::ast::Operato
         value(Operator::GreaterOrEqual, tag(">=")),
         value(Operator::LessOrEqual, tag("<=")),
         value(Operator::NotEqual, tag("!=")),
-        value(Operator::LikeMatch, tag("!:")),
+        value(Operator::NotLikeMatch, tag("!:")),
         value(Operator::LikeMatch, tag(":")),
         value(Operator::Equal, tag("=")),
         value(Operator::GreaterThan, tag(">")),
