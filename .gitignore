@@ -5,6 +5,7 @@ Cargo.lock
 
 # IDE files
 .idea/
+**.code-workspace
 
 # Windows executables/DLLs
 **/*.dll
