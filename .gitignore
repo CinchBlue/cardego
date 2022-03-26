@@ -13,3 +13,6 @@ Cargo.lock
 # Runtime directories
 logs/
 runtime/
+
+
+workspace/target/

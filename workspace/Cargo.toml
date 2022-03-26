@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "cardego-database",
+    "cardego-server",
+]

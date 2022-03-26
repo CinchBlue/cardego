@@ -1,0 +1,11 @@
+[package]
+name = "cardego-database"
+version = "0.10.0"
+authors = ["Austin Tasato <aytasato@gmail.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4.8"
+sea-orm = "0.6.0"
