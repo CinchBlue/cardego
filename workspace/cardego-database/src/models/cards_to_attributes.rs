@@ -3,6 +3,10 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::models::cards_to_attributes;
+
+use super::{attributes, cards};
+
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "cards_to_attributes")]
 pub struct Model {
@@ -41,6 +45,20 @@ impl Related<super::attributes::Entity> for Entity {
 impl Related<super::cards::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Cards.def()
+    }
+}
+
+pub struct CardsToAttributes;
+
+impl Linked for CardsToAttributes {
+    type FromEntity = cards::Entity;
+    type ToEntity = attributes::Entity;
+
+    fn link(&self) -> Vec<RelationDef> {
+        vec![
+            cards_to_attributes::Relation::Cards.def().rev(),
+            cards_to_attributes::Relation::Attributes.def(),
+        ]
     }
 }
 

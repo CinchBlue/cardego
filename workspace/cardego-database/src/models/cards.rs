@@ -33,4 +33,27 @@ impl Related<super::cards_to_attributes::Entity> for Entity {
     }
 }
 
+impl Related<super::attributes::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::cards_to_attributes::Relation::Attributes.def()
+    }
+
+    fn via() -> Option<RelationDef> {
+        Some(super::cards_to_attributes::Relation::Attributes.def().rev())
+    }
+}
+pub struct CardsToAttributes;
+
+impl Linked for CardsToAttributes {
+    type FromEntity = Entity;
+    type ToEntity = super::attributes::Entity;
+
+    fn link(&self) -> Vec<RelationDef> {
+        vec![
+            super::cards_to_attributes::Relation::Cards.def().rev(),
+            super::cards_to_attributes::Relation::Attributes.def(),
+        ]
+    }
+}
+
 impl ActiveModelBehavior for ActiveModel {}
