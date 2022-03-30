@@ -1,5 +1,5 @@
 [package]
-name = "cardego-database"
+name = "cardego-data-model"
 version = "0.10.0"
 authors = ["Austin Tasato <aytasato@gmail.com>"]
 edition = "2021"
@@ -7,8 +7,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cardego-data-model = { path = "../cardego-data-model"}
-
 log = "0.4.8"
 sea-orm = { version = "0.6.0", features = ["sqlx-sqlite", "runtime-tokio-native-tls", "macros"], default-features = false }
 
@@ -18,3 +16,4 @@ serde_json = "1.0.79"
 thiserror = "1.0.30"
 
 itertools = "0.10.3"
+

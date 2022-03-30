@@ -1,19 +1,18 @@
 pub mod error;
-pub mod models;
 pub mod shapes;
 
 use std::collections::HashMap;
 
+use cardego_data_model::models::{attributes, cards};
 use error::APIError;
 use log::debug;
-use models::{attributes, cards};
 use sea_orm::{
     ColumnTrait, ConnectionTrait, Database, DatabaseConnection, DatabaseTransaction, EntityTrait,
     ModelTrait, QueryFilter, TransactionTrait,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{models::cards_to_attributes, shapes::FullCard};
+use crate::shapes::FullCard;
 
 type APIResult<T> = Result<T, APIError>;
 
@@ -62,15 +61,33 @@ impl APIOperation {
     }
 
     // Query for cards
-    pub async fn query_cards(&self, query: QueryCardsInput) -> APIResult<Vec<shapes::FullCard>> {
-        // find and filter
-        let cards_attr_pairs: Vec<(cards::Model, Option<attributes::Model>)> =
-            cards::Entity::find()
-                .find_also_linked(cards::CardsToAttributes)
-                .all(&self.db_txn)
-                .await?;
+    pub async fn query_cards(&self, params: QueryCardsInput) -> APIResult<Vec<shapes::FullCard>> {
+        // These are rows of cards with their attributes
+        let cards_attr_pairs: Vec<(cards::Model, Option<attributes::Model>)> = async {
+            let mut cards_query = cards::Entity::find().find_also_linked(cards::CardsToAttributes);
 
-        // Consolidate attributes by the card id
+            if let Some(ids) = params.ids {
+                cards_query = cards_query.filter(cards::Column::Id.is_in(ids));
+            }
+
+            if let Some(name_regex) = params.name_regex {
+                cards_query = cards_query.filter(cards::Column::Name.like(&name_regex));
+            }
+
+            if let Some(desc_regex) = params.desc_regex {
+                cards_query = cards_query.filter(cards::Column::Desc.like(&desc_regex));
+            }
+
+            if let Some(image_url_regex) = params.image_url_regex {
+                cards_query = cards_query.filter(cards::Column::ImageUrl.like(&image_url_regex));
+            }
+
+            cards_query.all(&self.db_txn).await
+        }
+        .await?;
+
+        // Do a funky collect into a cards vec + attribute map.
+        // Hopefully the into_iter() optimizes for memory usage while iterating
         let (cards, mut cards_to_attributes) = cards_attr_pairs.into_iter().fold(
             (
                 Vec::<cards::Model>::new(),
@@ -89,6 +106,7 @@ impl APIOperation {
             },
         );
 
+        // Map each card to their attributes and return the full model.
         let full_cards: Vec<FullCard> = cards
             .into_iter()
             .map(|card| FullCard {

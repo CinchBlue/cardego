@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::models::attributes;
+use cardego_data_model::models::attributes;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FullCard {
