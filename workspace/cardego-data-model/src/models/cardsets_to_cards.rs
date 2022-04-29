@@ -7,9 +7,9 @@ use serde::{Deserialize, Serialize};
 #[sea_orm(table_name = "cardsets_to_cards")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub cardset_id: Vec<u8>,
+    pub cardset_id: i32,
     #[sea_orm(primary_key, auto_increment = false)]
-    pub card_id: Vec<u8>,
+    pub card_id: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -19,7 +19,7 @@ pub enum Relation {
         from = "Column::CardId",
         to = "super::cards::Column::Id",
         on_update = "Cascade",
-        on_delete = "Restrict"
+        on_delete = "Cascade"
     )]
     Cards,
     #[sea_orm(

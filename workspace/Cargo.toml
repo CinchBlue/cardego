@@ -3,4 +3,6 @@
 members = [
     "cardego-database",
     "cardego-server",
+    "cardego-data-model",
+    "migration"
 ]

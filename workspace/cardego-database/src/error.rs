@@ -8,4 +8,6 @@ use thiserror::Error;
 pub enum APIError {
     #[error("API error due to database error: {0:?}")]
     DatabaseError(#[from] DbErr),
+    #[error("Could not find item in table `{0:?}` with id `{1:?}`")]
+    ItemNotFound(String, String),
 }

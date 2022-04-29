@@ -1,0 +1,37 @@
+{%- macro render_card(id, cardclass, cardclass_long, initiative, name, speed, action, desc, image_url) -%}
+<div class="background sans-serif">
+    <div class="header">
+        <div class="table">
+            <div class="cardclass-circle cardclass-background-color-{{cardclass}}">
+                <div class="cardclass-section">
+                    <span class="cardclass-text title-text tiny-text">{{cardclass_long}}</span>
+                </div>
+            </div>
+            <div class="title-section">
+                <span class="title-text medium-text">{{name}}
+                <br />
+                <span class="title-text tiny-text">(#{{id}})</span>
+                </span>
+            </div>
+            <div class="initiative-circle cardclass-background-color-{{cardclass}}">
+                <div class="cardclass-section">
+                    <span class="cardclass-text title-text big-text">
+                        {{initiative}}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-image">
+        <img src="{{image_url}}" />
+    </div>
+    <div class="card-body">
+        <div class="card-stats">
+            <div class="card-stats-item"><strong>Speed:</strong> {{speed}}</div>
+            <div class="card-stats-item"><strong>Action:</strong> {{action}}</div>
+        </div>
+        <div class="card-description small-text">
+            {{desc}}
+        </div>
+    </div>
+</div>
+{%- endmacro -%}

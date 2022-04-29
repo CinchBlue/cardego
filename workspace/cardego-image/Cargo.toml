@@ -19,3 +19,9 @@ thiserror = "1.0.30"
 
 itertools = "0.10.3"
 
+# askama for web templating
+askama = "0.11.1"
+
+# png for saving and serving file iamges for cards
+png = "0.17.5"
+

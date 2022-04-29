@@ -6,30 +6,22 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "cards")]
 pub struct Model {
-    #[sea_orm(primary_key)]
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: i32,
+    #[sea_orm(column_type = "Text")]
     pub name: String,
+    #[sea_orm(column_type = "Text")]
     pub desc: String,
+    #[sea_orm(column_type = "Text", nullable)]
     pub image_url: Option<String>,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
-    #[sea_orm(has_many = "super::cardsets_to_cards::Entity")]
-    CardsetsToCards,
-    #[sea_orm(has_many = "super::cards_to_attributes::Entity")]
-    CardsToAttributes,
-}
+#[derive(Copy, Clone, Debug, EnumIter)]
+pub enum Relation {}
 
-impl Related<super::cardsets_to_cards::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::CardsetsToCards.def()
-    }
-}
-
-impl Related<super::cards_to_attributes::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::CardsToAttributes.def()
+impl RelationTrait for Relation {
+    fn def(&self) -> RelationDef {
+        panic!("No RelationDef")
     }
 }
 
@@ -37,22 +29,17 @@ impl Related<super::attributes::Entity> for Entity {
     fn to() -> RelationDef {
         super::cards_to_attributes::Relation::Attributes.def()
     }
-
     fn via() -> Option<RelationDef> {
-        Some(super::cards_to_attributes::Relation::Attributes.def().rev())
+        Some(super::cards_to_attributes::Relation::Cards.def().rev())
     }
 }
-pub struct CardsToAttributes;
 
-impl Linked for CardsToAttributes {
-    type FromEntity = Entity;
-    type ToEntity = super::attributes::Entity;
-
-    fn link(&self) -> Vec<RelationDef> {
-        vec![
-            super::cards_to_attributes::Relation::Cards.def().rev(),
-            super::cards_to_attributes::Relation::Attributes.def(),
-        ]
+impl Related<super::cardsets::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::cardsets_to_cards::Relation::Cardsets.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(super::cardsets_to_cards::Relation::Cards.def().rev())
     }
 }
 

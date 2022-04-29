@@ -1,0 +1,223 @@
+body {
+    margin: 0px;
+    padding: 0px;
+    background-color: #C6C6C6;
+}
+
+table {
+    margin: 0px;
+}
+
+td {
+    max-height: 100%;
+    margin: 0px;
+    padding: 0px;
+}
+
+tr {
+    max-width: 100%;
+    margin: 0px;
+}
+
+.table {
+    display: table;
+    width: 100%;
+    height: 100%;
+}
+
+.background {
+    width: 300px;
+    height: 420px;
+
+    /* padding: 10vw; */
+    background-color: #C6C6C6;
+}
+
+.header {
+    display: block;
+    height: 16%;
+
+    padding: 2%;
+
+    background-color: #F9F9F9;
+    
+    border-radius: 1vw;
+}
+
+.title-section {
+    display: table-cell;
+    text-align: center;
+    vertical-align: middle;
+    width: 60%;
+    max-width: 60%;
+}
+
+.cardclass-circle {
+    width: 20%;
+    border-radius: 100%;
+    border: 1px solid #C6C6C6;
+    display: table-cell;
+}
+
+.initiative-circle {
+    width: 20%;
+    border-radius: 100%;
+    border: 1px solid #C6C6C6;
+    display: table-cell;
+}
+
+.cardclass-section {
+    display: table;
+    height: 100%;
+    width: 100%;
+    /*! transform: translateX(50%) translateY(50%); */
+    text-align: center;
+}
+
+.cardclass-text {
+    display: table-cell;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.title-text {
+    font-weight: bold;
+    overflow: false;
+    overflow-wrap: break-word;
+    text-align: center;
+    vertical-align: middle;
+}
+
+
+
+.card-image {
+    height: 38%;
+
+
+    padding: 3%;
+    
+    /* background-color: #F9F9F9; */
+
+    text-align: center;
+}
+
+
+.card-body {
+    height: 37%;
+    background-color: #F5F3E6;
+    border-radius: 0vw;
+    border: 0vw solid #DDD9A1;
+
+    margin-top: 0.5vw;
+    padding: 0.5vw;
+    margin-bottom: 0.5vw;
+}
+
+.card-stats {
+    display: table;
+    text-align: center;
+    margin-top: 0vw;
+    height: 5%;
+    width: 95%;
+    border-radius: 0.5vw;
+    background-color: #F9F9F9;
+
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.card-stats-item {
+    display: table-cell;
+    vertical-align: middle;
+    text-align: center;
+}
+
+.card-description {
+    padding: 5%;
+}
+
+
+
+
+
+
+
+.humongous-text {
+    font-size: 4em;
+}
+
+.sans-serif {
+    font-family: "Noto Sans", sans-serif;
+}
+
+.giant-text {
+    font-size: 3em;
+    /* 12 w's */
+}
+
+.large-text {
+    font-size: 2em;
+    /* 30 W's */
+}
+
+.big-text {
+    font-size: 1.5em;
+}
+
+.medium-text {
+    font-size: 1em;
+    /* 120 W's */
+}
+
+.small-text {
+    font-size: 0.8em;
+}
+
+.tiny-text {
+    font-size: 0.5em;
+}
+
+.cardclass-background-color-Po {
+    background-color: #e6ffe6;
+}
+
+.cardclass-background-color-Tr {
+    background-color: #e6ffcc;
+}
+
+.cardclass-background-color-1H {
+    background-color: #e5ffff;
+}
+
+.cardclass-background-color-2H {
+    background-color: #ccffff;
+}
+
+.cardclass-background-color-Ar {
+    background-color: #cce6ff;
+}
+
+.cardclass-background-color-Eq {
+    background-color: #e5ecff;
+}
+
+.cardclass-background-color-It {
+    background-color: #f2f2f2;
+}
+
+.cardclass-background-color-Co {
+    background-color: #ffe5e5;
+}
+
+.cardclass-background-color-Te {
+    background-color: #ffffe5;
+}
+
+.cardclass-background-color-Sp {
+    background-color: #ffe5ff;
+}
+
+img {
+    max-width: 100%;
+    max-height: 100%;
+}
