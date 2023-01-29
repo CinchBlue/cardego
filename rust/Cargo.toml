@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "workspace/old-data-server",
+    "workspace/data-server",
+]
