@@ -17,8 +17,8 @@ use log::{debug, info, warn};
 use std::fs::File;
 use std::io::Write;
 
-pub const CARD_FRONT_FILE_PATH: &str = "static/templates/card_front.png";
-pub const CARD_BACK_FILE_PATH: &str = "static/templates/card_back.png";
+pub const CARD_FRONT_FILE_PATH: &str = "assets/old-data-server/static/templates/card_front.png";
+pub const CARD_BACK_FILE_PATH: &str = "assets/old-data-server/static/templates/card_back.png";
 
 pub fn generate_card_image_html_string(card_info: &Card) -> Result<String> {
     let substituted_template = SingleCardTemplate::new(card_info).render()?;

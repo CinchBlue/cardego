@@ -4,7 +4,7 @@ use crate::models::Card;
 use askama::Template;
 
 #[derive(Debug, Default, Clone, Template)]
-#[template(path = "single-card.html")]
+#[template(path = "../../static/templates/single-card.html")]
 pub struct SingleCardTemplate {
     pub id: i32,
     pub cardclass: String,
