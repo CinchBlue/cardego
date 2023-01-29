@@ -2,12 +2,7 @@
 
 **Current version: alpha-10**
 
-This is the server for Cardego, the homebrew RPG system involving cards.
-
-Cardego is designed to be played with Tabletop Simulator, but its coded
-components can be broken up into the front-end and back-end. This repo
-contains the back-end, and could potentially be used with a different
-front-end besides Tabletop Simulator.
+This is the game-data server for Cardego, the homebrew RPG system involving cards.
 
 ## Building the server
 

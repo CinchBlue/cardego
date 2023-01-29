@@ -1,7 +1,7 @@
 # Rust-related build directories
-/target
-**/*.rs.bk
-Cargo.lock
+rust/**/target/**
+rust/**/*.rs.bk
+rust/Cargo.lock
 
 # IDE files
 .idea/
@@ -12,5 +12,5 @@ Cargo.lock
 **/*.exe
 
 # Runtime directories
-logs/
-runtime/
+rust/logs/
+rust/runtime/

@@ -1,5 +1,5 @@
 [package]
-name = "cardego-server"
+name = "cardego-data-server"
 version = "0.10.0"
 authors = ["Austin Tasato <aytasato@gmail.com>"]
 edition = "2018"
