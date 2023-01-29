@@ -1,7 +1,7 @@
 # Rust-related build directories
 rust/**/target/**
 rust/**/*.rs.bk
-rust/Cargo.lock
+rust/**/Cargo.lock
 
 # IDE files
 .idea/
