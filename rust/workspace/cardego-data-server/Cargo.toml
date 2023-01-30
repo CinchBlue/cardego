@@ -1,10 +1,15 @@
 [package]
 name = "cardego-data-server"
 version = "0.10.0"
-authors = ["Austin Tasato <aytasato@gmail.com>"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+bimap.workspace = true
+eyre.workspace = true
+indexmap.workspace = true
+petgraph.workspace = true
+tokio.workspace = true
 
 [[bin]]
 name = "cardego-data-server"
