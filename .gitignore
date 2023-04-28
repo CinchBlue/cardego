@@ -14,3 +14,7 @@ rust/**/Cargo.lock
 # Runtime directories
 rust/logs/
 rust/runtime/
+
+# Local builds
+rust/target/
+rust/vendor/
