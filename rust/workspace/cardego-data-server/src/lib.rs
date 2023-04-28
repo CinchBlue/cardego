@@ -3,6 +3,8 @@ use std::{hash::Hash, sync::Arc};
 mod collections;
 mod models;
 
+pub type AppResult<T> = eyre::Result<T>;
+
 pub trait Idable {
     type Id: Hash + Eq + Clone;
 

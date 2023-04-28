@@ -18,6 +18,7 @@ log = "0.4.17"
 metrics = "0.20.1"
 petgraph = "0.6.2"
 tracing = "0.1.37"
+tracing-subscriber = "0.3.16"
 regex = "1"
 sea-orm = "0.10.7"
 serde = { version = "1.0.106", features = ["derive"] }

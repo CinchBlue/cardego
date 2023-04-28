@@ -5,11 +5,14 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
+axum.workspace = true
 bimap.workspace = true
 eyre.workspace = true
 indexmap.workspace = true
 petgraph.workspace = true
 tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
 
 [[bin]]
 name = "cardego-data-server"
