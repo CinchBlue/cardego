@@ -14,7 +14,7 @@ async fn main() -> eyre::Result<()> {
         .fallback(fallback)
         .route("/", get(hello_world));
 
-    tracing::log!("meow");
+    tracing::info!("meow");
 
     // Run our application as a hyper server.
     axum::Server::bind(&"0.0.0.0:80".parse().expect("Could not bind to IP/port"))
