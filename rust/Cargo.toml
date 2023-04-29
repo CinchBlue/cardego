@@ -1,5 +1,9 @@
 [workspace]
-members = ["workspace/cardego-data-server", "workspace/cardego-data-db"]
+members = [
+    "workspace/cardego-data-server",
+    "workspace/cardego-data-db",
+    "workspace/cardego-data-db-schema",
+]
 
 [workspace.dependencies]
 anyhow = "1.0.28"
@@ -15,12 +19,12 @@ itertools = "0.10.0"
 libsqlite3-sys = { version = "*", features = ["bundled"] }
 lazy_static = "1"
 log = "0.4.17"
-metrics = "0.20.1"
+metrics = "0.21.0"
 petgraph = "0.6.2"
 tracing = "0.1.37"
 tracing-subscriber = "0.3.16"
 regex = "1"
-sea-orm = "0.10.7"
+sea-orm = "0.11.3"
 serde = { version = "1.0.106", features = ["derive"] }
 serde_json = "1.0.52"
 thiserror = "1.0"
