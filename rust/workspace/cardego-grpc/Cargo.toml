@@ -1,0 +1,31 @@
+[package]
+name = "cardego-grpc"
+version = "0.1.0"
+authors = ["Austin Tasato <aytasato@gmail.com>"]
+edition = "2021"
+build = 'build.rs'
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["tonic/codegen", "tonic/prost"]
+client = []
+server = []
+
+[dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+tokio = {version = "*", default-features = false }
+tonic = { version = "*", default-features = false }
+prost = "*"
+
+[build-dependencies]
+tonic-build = "0.9.2"
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+tonic = { version = "*", default-features = false, features = ["transport"] }
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+mio = { version = "*", optional = true }
+tokio = { version = "*", default-features = false}
+

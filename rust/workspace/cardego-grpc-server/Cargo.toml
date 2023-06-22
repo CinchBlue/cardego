@@ -1,0 +1,25 @@
+[package]
+name = "cardego-grpc-server"
+version = "0.1.0"
+authors = ["Austin Tasato <aytasato@gmail.com>"]
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", default-features = false, optional = true}
+anyhow = "*"
+tracing = "*"
+tracing-subscriber = "*"
+
+cardego-grpc = { path = "../cardego-grpc", features=["server"] }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+tokio = {version = "*", features = ["full"]}
+tonic = { version = "*"}
+tonic-web = "*"
+tonic-reflection = "*"
+
+[[bin]]
+name = "cardgo-grpc-server"
+path = "src/main.rs"
+target = ["cfg(not(target_family = \"wasm\"))"]
+
